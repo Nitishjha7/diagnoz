@@ -1,0 +1,118 @@
+# Roadmap — Interview-Ready Project Plan
+
+**Goal:** DiagnoZ ko ek **interview me dikhane layak, depth-wala project** banana hai
+(full production product nahi). Priority sirf un cheezon pe hai jo interview me "impressive"
+aur "defendable" lagengi — real-time systems, media infra, geospatial.
+
+---
+
+## Current Status (jo ban chuka hai)
+
+- ✅ Repo scaffold — `backend/`, `frontend/`, `docker-compose.yml`, `.gitignore`
+- ✅ Empty placeholder files: `audio_triage.py`, `canvas_sync.py`, `streaming.py`,
+  `dispatch.py`, `celery_app.py`, `media_transcode.py`, `main.py`
+- ✅ Docs: README, TECHNICAL_SPEC, SETUP, ROADMAP, CODE_NOTES
+- ❌ Koi actual implementation nahi (sab files khaali hai)
+- ❌ DB models / migrations
+- ❌ Frontend
+
+---
+
+## Phase Order (spec ke 5 phases)
+
+### Phase 1 — Foundation: DB models, PostGIS, Auth
+SQLAlchemy models (`users`, `technician_profiles`, `diagnostic_sessions`,
+`service_dispatches`) + PostGIS `GEOMETRY(Point, 4326)` columns + GIST indexes via Alembic.
+JWT issuance + RBAC dependency guards (`CUSTOMER` / `TECHNICIAN` / `ADMIN`).
+
+**Kyun pehle:** baaki sab isi pe khada hai. PostGIS extension enable karna, `geoalchemy2`
+use karna — ye setup interview me "spatial DB experience" prove karta hai.
+
+### Phase 2 — Binary Audio AI Triage
+`/ws/audio/triage/{session_id}` — raw 16kHz PCM binary ingestion, ~1.5s buffering,
+streaming Whisper STT → LLM function calling (structured `appliance_type / suspected_issue /
+urgency`) → streaming TTS wapas client ko.
+
+**Interview point:** "base64 JSON kyun nahi use kiya" — 33% bandwidth overhead + har chunk
+pe string encode/decode event loop pe. Raw `ArrayBuffer` optimal hai.
+
+### Phase 3 — Video Room & Streaming
+- `/ws/video/signal` — FastAPI async signaling broker (offer/answer/ice_candidate routing).
+- `/ws/canvas/sync` — normalized `[0.0, 1.0]` coordinate broadcast over Redis Pub/Sub.
+- `/api/v1/videos/stream/{id}` — HTTP 206 byte-range `StreamingResponse` (file pointer
+  seek, no RAM bloat, instant scrubbing).
+
+**Interview point:** "rapid seeking kaise handle hota hai" — browser `Range: bytes=X-Y`
+bhejta hai, hum `file.seek(start)` karke sirf woh slice yield karte hain.
+
+### Phase 4 — Geospatial Dispatch & Dual-OTP
+PostGIS KNN query (`<->` operator + GIST index + `ST_DWithin` 5km filter) closest available
+technician nikalta hai `O(log N)` me. Redis distributed lock 5 min ke liye assignment hold
+karta hai. Dual-OTP state machine: `ASSIGNED → (start_otp) IN_PROGRESS → (end_otp) COMPLETED`,
+OTP hashed store hote hain (`pgcrypto` / bcrypt).
+
+**Interview point:** "PostGIS vs bounding box" — flat Euclidean math Earth curvature ignore
+karta hai aur full-table scan `O(N)` hota hai; GIST R-Tree `O(log N)`.
+
+### Phase 5 — Celery Media, Invoicing & Payout
+- `tasks.transcode_to_hls` — FFmpeg ABR HLS (1080/720/480), `master.m3u8` + 4s `.ts`
+  segments → MinIO.
+- `tasks.generate_report` — WeasyPrint inspection PDF (snapshots, transcript, parts,
+  signature).
+- `tasks.settle_payouts` — weekly batch: `commission = amount * 0.15`,
+  `payout = amount * 0.85 - TDS(1%)`, ledger update.
+
+---
+
+## Aage ki priority (proof-of-work — spec se bahar, but interview me strong)
+
+### A. Evaluation / metrics script
+`eval/scenarios.json` — 15-20 sample fault descriptions with expected structured output.
+Ek script measure kare: triage extraction accuracy, remote-resolution rate simulate,
+dispatch KNN precision (kya sach me nearest technician mila).
+
+**Kyun:** "bana ke chhod diya" vs "maine measure kiya" — interviewer turant pakadta hai.
+Numbers strong hote hain.
+
+### B. Frontend demo UI (React 19 + Vite)
+`CustomerRoom` (mic widget + video + canvas overlay), `TechnicianConsole` (draw tools),
+`DispatchTracker` (map + OTP entry). Live demo Swagger se hamesha better lagta hai.
+
+### C. `docs/INTERVIEW_NOTES.md` (sabse last)
+- 60-second pitch (spec me already draft hai)
+- Likely Q&A: "WebRTC signaling FastAPI pe kyun", "retry/lock TTL 5 min kyun",
+  "HLS bitrates kaise chune", "OTP hash kyun store kiya plain nahi"
+- Architecture diagram apne shabdon me
+
+---
+
+## Deployment Plan (free tier)
+
+| Piece | Kahan | Kyun |
+|---|---|---|
+| PostgreSQL + PostGIS | [Neon](https://neon.tech) / [Supabase](https://supabase.com) | Free tier, PostGIS supported |
+| Redis | [Upstash](https://upstash.com) | Free serverless Redis, pub/sub + TLS |
+| Backend + Worker | [Render](https://render.com) | Docker se deploy, background worker service |
+| Object storage | [Cloudflare R2](https://developers.cloudflare.com/r2/) / Supabase Storage | S3-compatible, free egress (R2) |
+| Frontend | [Vercel](https://vercel.com) / [Netlify](https://netlify.com) | Free static, GitHub auto-deploy |
+
+**Gotchas:**
+- WebRTC ke liye TURN server chahiye hoga (coturn) agar dono peer strict NAT ke peeche ho —
+  free [metered.ca](https://www.metered.ca/tools/openrelay/) TURN use kar sakte ho.
+- Render free tier sleep hota hai — demo se pehle URL warm kar lena.
+- `.env` kabhi commit mat karna — `.gitignore` already exclude karta hai, sirf
+  `.env.example` commit hota hai.
+
+---
+
+## Order of Execution
+
+1. Phase 1 — models + PostGIS + auth
+2. Phase 2 — audio triage
+3. Phase 3 — video engine (signaling + canvas + 206)
+4. Phase 4 — dispatch + dual-OTP
+5. Phase 5 — Celery workers
+6. Evaluation script
+7. Frontend demo UI
+8. Deployment
+9. `docs/INTERVIEW_NOTES.md`
