@@ -68,6 +68,10 @@ docker compose up --build
 Brings up: `db` (PostgreSQL + PostGIS), `redis`, `backend` (FastAPI), `worker` (Celery),
 `minio` (object storage), and `frontend` (React via Nginx).
 
+## Build Plan
+
+See [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) — session-wise schedule, who does what, timeline.
+
 ## Roadmap
 
 See [docs/ROADMAP.md](docs/ROADMAP.md). Short version:
