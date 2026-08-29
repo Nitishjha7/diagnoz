@@ -11,7 +11,7 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
 - ✅ Repo scaffold — `backend/`, `frontend/`, `docker-compose.yml`, `.gitignore`
 - ✅ Empty placeholder files: `audio_triage.py`, `canvas_sync.py`, `streaming.py`,
   `dispatch.py`, `celery_app.py`, `media_transcode.py`, `main.py`
-- ✅ Docs: README, TECHNICAL_SPEC, SETUP, ROADMAP, CODE_NOTES
+- ✅ Docs: README, TECHNICAL_SPEC, SETUP, ROADMAP, CODE_NOTES, INTERVIEW_NOTES
 - ❌ Koi actual implementation nahi (sab files khaali hai)
 - ❌ DB models / migrations
 - ❌ Frontend
@@ -78,11 +78,18 @@ Numbers strong hote hain.
 `CustomerRoom` (mic widget + video + canvas overlay), `TechnicianConsole` (draw tools),
 `DispatchTracker` (map + OTP entry). Live demo Swagger se hamesha better lagta hai.
 
-### C. `docs/INTERVIEW_NOTES.md` (sabse last)
-- 60-second pitch (spec me already draft hai)
-- Likely Q&A: "WebRTC signaling FastAPI pe kyun", "retry/lock TTL 5 min kyun",
-  "HLS bitrates kaise chune", "OTP hash kyun store kiya plain nahi"
-- Architecture diagram apne shabdon me
+### C. `docs/INTERVIEW_NOTES.md` — ✅ already likha hua
+30-sec pitch, problem, "real ya toy?", full flow, architecture, 6 USP deep-dives, ROI table,
+limitations + mitigations, interview presentation script, aur anticipated Q&A (technical +
+product). Jaise-jaise implementation aage badhe, isme concrete numbers (measured
+remote-resolution rate, dispatch latency) add karte rehna.
+
+Aage add karne layak Q&A:
+- "WebRTC signaling FastAPI pe kyun, dedicated SFU kyun nahi" → P2P hai, SFU sirf
+  multi-party ke liye chahiye; 1-on-1 triage ke liye signaling broker kaafi
+- "dispatch lock TTL 5 min kyun" → technician ko accept/reject ka realistic window,
+  itni der me stale nahi hota
+- "OTP hash kyun, plain kyun nahi" → DB leak pe job hijack na ho
 
 ---
 
@@ -115,4 +122,4 @@ Numbers strong hote hain.
 6. Evaluation script
 7. Frontend demo UI
 8. Deployment
-9. `docs/INTERVIEW_NOTES.md`
+9. `docs/INTERVIEW_NOTES.md` refine — real measured numbers bharna

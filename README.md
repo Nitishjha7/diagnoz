@@ -45,7 +45,9 @@ technician with the exact spare part already identified.
    minus 1% TDS. Weekly batch settlement.
 
 See [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md) for the full architecture, database
-schema, WebSocket contracts, and implementation detail.
+schema, WebSocket contracts, and implementation detail. See
+[docs/INTERVIEW_NOTES.md](docs/INTERVIEW_NOTES.md) for the pitch, ROI numbers, trade-offs,
+and anticipated Q&A.
 
 ## Project Structure
 
