@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import Logo from "./Logo";
 import { useAuth } from "../hooks/useAuth";
+import sidebarPoster from "../assets/brand/sidebar-poster.png";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: "⌂", end: true },
@@ -42,8 +43,7 @@ export default function AppShell({ children }) {
         </nav>
 
         <div className="sidebar-promo">
-          <strong>Real Experts. Real Solutions.</strong>
-          Right at home — fewer truck rolls, faster fixes, a greener tomorrow.
+          <img src={sidebarPoster} alt="Real Experts. Real Solutions. Right at Home." />
         </div>
 
         <div className="sidebar-user">
