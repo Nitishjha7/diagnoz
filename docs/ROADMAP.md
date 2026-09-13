@@ -28,8 +28,13 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
   COMPLETED`), technician profile/location/availability endpoints. Verified full lifecycle
   end-to-end including a real bug found + fixed (KNN returning the wrong FK). Detail:
   [PHASE_4_NOTES.md](PHASE_4_NOTES.md)
-- ⬜ Empty placeholder files (Phase 5+): `media_transcode.py` (report/payout tasks not yet
-  created)
+- ✅ **Phase 5 complete** — `tasks.transcode_to_hls` (real FFmpeg multi-bitrate HLS, fixed a
+  broken reference command via `-filter_complex`+`split`), `tasks.generate_report`
+  (WeasyPrint PDF, pinned a `pydyf` compat issue), `tasks.settle_payouts` (idempotent weekly
+  wallet-balance settlement, Celery beat scheduled). All 3 verified running for real (ffmpeg,
+  WeasyPrint, MinIO) inside `docker compose`, not mocked. Detail:
+  [PHASE_5_NOTES.md](PHASE_5_NOTES.md)
+- **Backend is fully implemented (Phase 1–5).**
 - ❌ Frontend (React code not started; `frontend/Dockerfile` empty, service commented out
   of `docker-compose.yml` until Frontend phase)
 

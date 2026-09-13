@@ -4,10 +4,11 @@ Ye file har file / dependency ka **kaam aur reason** track karti hai, taaki baad
 interview me) yaad rahe ki har cheez kyun li gayi. Jaise-jaise code likha jayega, isko
 update karte rahenge.
 
-**Status:** Phase 1 se 4 tak implement ho chuke hain aur `docker compose` me verify kiya gaya
-hai. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md), [PHASE_2_NOTES.md](PHASE_2_NOTES.md),
-[PHASE_3_NOTES.md](PHASE_3_NOTES.md), aur [PHASE_4_NOTES.md](PHASE_4_NOTES.md) me. Phase 5
-se aage ke liye neeche wale sections abhi bhi "planned intent" hain.
+**Status:** Phase 1 se 5 tak (poora backend) implement ho chuke hain aur `docker compose` me
+verify kiya gaya hai. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md),
+[PHASE_2_NOTES.md](PHASE_2_NOTES.md), [PHASE_3_NOTES.md](PHASE_3_NOTES.md),
+[PHASE_4_NOTES.md](PHASE_4_NOTES.md), aur [PHASE_5_NOTES.md](PHASE_5_NOTES.md) me. Sirf
+Frontend (React) baaki hai.
 
 ---
 
@@ -30,6 +31,9 @@ se aage ke liye neeche wale sections abhi bhi "planned intent" hain.
 | `bcrypt==4.0.1` | Passlib ka bcrypt backend, pinned | `bcrypt` 5.x me passlib 1.7.4 ke saath incompatibility hai (`password cannot be longer than 72 bytes` error backend detection ke waqt hi aata hai) — 4.0.1 pe pin karna padha |
 | `python-multipart` | Form/file upload parsing | OAuth2 password form (`/auth/login`) aur video upload endpoint ke liye |
 | `shapely` | Python geometry objects (`Point`, etc.) | `geoalchemy2.shape.from_shape()` ko chahiye Python lat/lon se PostGIS geometry banane ke liye (technician location update, dispatch customer_location) |
+| `boto3` | S3 client | MinIO pe HLS segments + PDF reports upload karne ke liye |
+| `weasyprint` | HTML → PDF | Inspection report generation (Celery task) |
+| `pydyf==0.10.0` | WeasyPrint ki PDF-writing dependency, pinned | Latest `pydyf` (0.12.1) weasyprint 62.3 ke saath breaking-incompatible hai — pin zaroori tha |
 
 FFmpeg, WeasyPrint, boto3, faster-whisper, httpx — ye Phase 2/5 me add honge jab unki
 zaroorat aayegi (abhi rakhna scope-creep hota).
@@ -330,34 +334,77 @@ autodiscovery `workers.tasks.*` se. `worker` container isi ko `celery -A` se run
 
 ---
 
-## backend/workers/tasks/media_transcode.py
+## backend/workers/storage.py (Phase 5 — naya)
+
+Shared `boto3` S3/MinIO helper — teeno worker task isi ko use karte hain, koi bhi apna client
+nahi banata. `get_s3_client()`, `ensure_bucket()` (bucket na ho to create), `upload_directory()`
+(recursive, HLS output ke liye), `upload_file()` (PDF jaisi single file ke liye).
+
+---
+
+## backend/workers/tasks/media_transcode.py **(Phase 5 — implemented aur real FFmpeg se test kiya)**
 
 `tasks.transcode_to_hls` — session recording ko FFmpeg se ABR HLS me convert karta hai.
 
 - Ek FFmpeg command me teen rendition: 1080p (4500k), 720p (2500k), 480p (1000k).
+- **`-filter_complex "[0:v]split=3[v1][v2][v3];[v1]scale=...[v1out];..."` + `-map [vNout]`
+  per rendition** — spec ke reference snippet me repeated `-vf` per output tha, jo asal me
+  kaam nahi karta (neeche bug section dekho). `split` filter se input ek baar decode hoke 3
+  independent branches me scale hota hai.
 - `-var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2"` — har video stream ke saath audio pair.
 - `-hls_time 4` — 4-second `.ts` segments; `master.m3u8` + `stream_%v.m3u8` playlists.
-- Output MinIO/S3 pe upload, `hls_master_playlist_url` session row me save.
+- Output poora directory MinIO pe upload (`hls/{session_id}/`), `hls_master_playlist_url`
+  return.
 - `bind=True, max_retries=3` — FFmpeg fail (corrupt input) pe `self.retry(countdown=10)`.
 
 **Kyun Celery, request ke andar nahi:** transcode minutes le sakta hai — HTTP request
 timeout ho jaayega aur worker block hoga. Async offload + retry + progress tracking.
 
+**Bug jo real ffmpeg run se pakda gaya:** `-vf scale=...` ko 3 baar repeat karna (ek per
+output) sirf **last** wala rakhta hai — codec options (`-c:v:N`) ki tarah fan-out nahi hota.
+Result tha: `hls: Unable to map stream at v:1`, zero output files. `-filter_complex` + `split`
++ explicit `-map` se fix kiya. Ye tabhi pakda jaata hai jab command real video file pe chalao,
+sirf padhne se nahi.
+
+**Verify kiya:** container ke andar `ffmpeg -f lavfi` se 2-second test video banaya, task run
+kiya, 3 real renditions (segments + playlists) disk pe aur MinIO dono me confirm kiye.
+
 ---
 
-## backend/workers/tasks/report_generate.py (planned)
+## backend/workers/tasks/report_generate.py **(Phase 5 — implemented)**
 
-`tasks.generate_report` — WeasyPrint se inspection PDF. Customer details + snapshot URLs +
-transcript + `parts_replaced` + digital signature → HTML template → PDF → S3 →
-`invoice_pdf_url`.
+`tasks.generate_report` — WeasyPrint se inspection PDF. Customer/technician name, diagnosis
+summary, voice transcript, `parts_replaced` table, billing breakdown (fee/commission/earnings)
+→ inline-styled HTML string → PDF (`HTML(string=...).write_pdf()`) → MinIO
+(`reports/{dispatch_id}.pdf`) → `invoice_pdf_url` return.
+
+**Gotcha:** `weasyprint==62.3` naye `pydyf` (0.12.1) ke saath incompatible hai
+(`AttributeError: 'super' object has no attribute 'transform'`, ek breaking API change jo
+WeasyPrint abhi tak catch up nahi kiya). `pydyf==0.10.0` explicitly pin kiya.
+
+**Verify kiya:** sample dispatch data se PDF generate kiya, MinIO se download karke `%PDF-`
+magic bytes confirm kiye.
 
 ---
 
-## backend/workers/tasks/payout_settle.py (planned)
+## backend/workers/tasks/payout_settle.py **(Phase 5 — implemented)**
 
-`tasks.settle_payouts` — weekly Celery beat schedule. Har `COMPLETED` dispatch pe:
-`platform_commission = total * 0.15`, `technician_earnings = total * 0.85 - TDS(total*0.01)`.
-Technician `wallet_balance` update, ledger entry.
+`tasks.settle_payouts` — weekly Celery beat schedule (`crontab(hour=2, minute=0,
+day_of_week=1)`, har Monday). Har `COMPLETED` dispatch jiska `settled_at IS NULL` hai, uska
+`technician_earnings` uss technician ke `wallet_balance` me credit hota hai, `settled_at`
+stamp hota hai.
+
+**Kyun `settled_at` column, `dispatch_status="SETTLED"` nahi:** DB `CHECK` constraint sirf
+`PENDING/ACCEPTED/IN_PROGRESS/COMPLETED/CANCELLED` allow karta hai. Settlement job-lifecycle
+se alag concern hai (dispute ho jaaye to job ko un-complete kiye bina bhi handle hona chahiye)
+— isliye naya nullable timestamp column, naya Alembic migration (`0002_add_settled_at.py`).
+
+**Kyun `settled_at IS NULL` filter, time-window nahi:** agar worker kuch din down rahe, agli
+run purana sab catch up kar legi, silently skip nahi karegi.
+
+**Verify kiya:** real dispatch lifecycle complete kiya (fee=1000 → commission=150,
+earnings=841.5), task run kiya, `wallet_balance` 0 → 841.5 confirm kiya, dobara run kiya to
+`settled_count: 0` (idempotent, double-credit nahi hua).
 
 ---
 
@@ -377,10 +424,14 @@ Technician `wallet_balance` update, ledger entry.
 |---|---|---|---|
 | `db` | `postgis/postgis:16-3.4` | Relational + spatial store | `5434` (container: `5432`) |
 | `redis` | `redis:7-alpine` | Pub/sub, locks, Celery broker | `6381` (container: `6379`) |
-| `minio` | `minio/minio` | S3-compatible object storage | `9002`/`9003` |
+| `minio` | `quay.io/minio/minio` | S3-compatible object storage | `9002`/`9003` |
 | `backend` | build `./backend` | FastAPI gateway, startup pe `alembic upgrade head` | `8000` |
 | `worker` | build `./backend` | `celery -A workers.celery_app worker` | — |
+| `beat` | build `./backend` | `celery -A workers.celery_app beat` (weekly payout scheduler) | — |
 | `frontend` | build `./frontend` | (commented out) | — |
+
+**`minio/minio` Docker Hub se hata diya gaya hai** (MinIO ne publishing model badla) — ab
+`quay.io/minio/minio:latest` use karte hain.
 
 **Host ports 5432/6379 default se hata ke 5434/6381/9002/9003 kiye** — is machine pe pehle se
 ek doosra project (`webguard-*`) `5432` aur `6379` occupy kiye baitha tha; container-to-container
