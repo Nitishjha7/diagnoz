@@ -66,7 +66,12 @@ docker compose up --build
 ```
 
 Brings up: `db` (PostgreSQL + PostGIS), `redis`, `backend` (FastAPI), `worker` (Celery),
-`minio` (object storage), and `frontend` (React via Nginx).
+`beat` (Celery scheduler), `minio` (object storage), and `frontend` (React via Nginx).
+
+**Status: fully implemented and verified end-to-end** — all 5 backend phases plus the
+frontend. See [docs/ROADMAP.md](docs/ROADMAP.md) for the phase-by-phase detail and
+`docs/PHASE_*_NOTES.md` for what was built, how it was verified, and real bugs found along
+the way.
 
 ## Build Plan
 

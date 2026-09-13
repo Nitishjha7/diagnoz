@@ -25,7 +25,7 @@ kitna time lagega. Har session ke baad isko update karte rahenge (✅ mark karte
 | 2 | Phase 3 | `/ws/video/signal` (WebRTC SDP/ICE broker), `/ws/canvas/sync` (normalized coords + Redis Pub/Sub), `/api/v1/videos/stream` (HTTP 206 byte-range) | ✅ |
 | 3 | Phase 4 | PostGIS KNN dispatch + Redis 5-min lock, Dual-OTP state machine | ✅ |
 | 3 | Phase 5 | Celery: FFmpeg HLS transcode + WeasyPrint PDF + 85/15 payout split | ✅ |
-| 4 | Frontend + wiring | React 19 demo UI (CustomerRoom, TechnicianConsole, DispatchTracker), end-to-end wiring, local run verify | ⬜ |
+| 4 | Frontend + wiring | React 19 demo UI (CustomerRoom, TechnicianConsole, DispatchTracker), end-to-end wiring, local run verify | ✅ |
 
 **Claude ka effort:** ~4 working sessions. Back-to-back karein toh 1–2 din.
 
@@ -79,7 +79,8 @@ Detail har phase ka [ROADMAP.md](ROADMAP.md) me hai.
 
 ## Next Step
 
-Poora backend (Phase 1–5) complete ho chuka hai — detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md),
-[PHASE_2_NOTES.md](PHASE_2_NOTES.md), [PHASE_3_NOTES.md](PHASE_3_NOTES.md),
-[PHASE_4_NOTES.md](PHASE_4_NOTES.md), [PHASE_5_NOTES.md](PHASE_5_NOTES.md) me. Ab sirf
-Frontend (React 19 + Vite demo UI) aur end-to-end wiring baaki hai.
+Backend (Phase 1–5) aur Frontend dono complete ho chuke hain, real browser me end-to-end
+verify kiya (Vite dev mode + Dockerized Nginx mode dono). Detail
+[PHASE_1_NOTES.md](PHASE_1_NOTES.md) se [PHASE_5_NOTES.md](PHASE_5_NOTES.md) tak, aur
+[PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md). Baaki sirf: evaluation script +
+`INTERVIEW_NOTES.md` me real measured numbers.

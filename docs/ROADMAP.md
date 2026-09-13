@@ -34,9 +34,12 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
   wallet-balance settlement, Celery beat scheduled). All 3 verified running for real (ffmpeg,
   WeasyPrint, MinIO) inside `docker compose`, not mocked. Detail:
   [PHASE_5_NOTES.md](PHASE_5_NOTES.md)
-- **Backend is fully implemented (Phase 1–5).**
-- ❌ Frontend (React code not started; `frontend/Dockerfile` empty, service commented out
-  of `docker-compose.yml` until Frontend phase)
+- ✅ **Frontend complete** — React 19 + Vite demo UI (CustomerRoom, TechnicianConsole,
+  DispatchTracker), wired to every backend endpoint/WebSocket. Verified with headless
+  Playwright against the real running backend in both dev-server mode and the fully
+  Dockerized Nginx-served build — a real CORS bug was caught and fixed in the process.
+  Detail: [PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md)
+- **Backend (Phase 1–5) and Frontend are both fully implemented and verified.**
 
 ---
 

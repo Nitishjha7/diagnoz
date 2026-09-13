@@ -4,11 +4,11 @@ Ye file har file / dependency ka **kaam aur reason** track karti hai, taaki baad
 interview me) yaad rahe ki har cheez kyun li gayi. Jaise-jaise code likha jayega, isko
 update karte rahenge.
 
-**Status:** Phase 1 se 5 tak (poora backend) implement ho chuke hain aur `docker compose` me
-verify kiya gaya hai. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md),
-[PHASE_2_NOTES.md](PHASE_2_NOTES.md), [PHASE_3_NOTES.md](PHASE_3_NOTES.md),
-[PHASE_4_NOTES.md](PHASE_4_NOTES.md), aur [PHASE_5_NOTES.md](PHASE_5_NOTES.md) me. Sirf
-Frontend (React) baaki hai.
+**Status:** Backend (Phase 1–5) aur Frontend (React 19 + Vite) dono complete + verified hain.
+Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md), [PHASE_2_NOTES.md](PHASE_2_NOTES.md),
+[PHASE_3_NOTES.md](PHASE_3_NOTES.md), [PHASE_4_NOTES.md](PHASE_4_NOTES.md),
+[PHASE_5_NOTES.md](PHASE_5_NOTES.md), aur [PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md)
+me. Baaki sirf evaluation script + INTERVIEW_NOTES me real numbers.
 
 ---
 
