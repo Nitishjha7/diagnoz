@@ -1,26 +1,18 @@
-import { Routes, Route, Link, Navigate } from "react-router-dom";
-import { useAuth } from "./hooks/useAuth";
+import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import Dashboard from "./pages/Dashboard";
 import CustomerRoom from "./pages/CustomerRoom";
 import TechnicianConsole from "./pages/TechnicianConsole";
 import DispatchTracker from "./pages/DispatchTracker";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AppShell from "./components/AppShell";
 
-function Home() {
-  const { user, logout } = useAuth();
-
+function Shell({ children }) {
   return (
-    <div className="home">
-      <h1>DiagnoZ</h1>
-      <p>Logged in as {user?.full_name} ({user?.role})</p>
-      <nav>
-        <Link to="/customer">Customer Room</Link>
-        <Link to="/technician">Technician Console</Link>
-        <Link to="/dispatch">Dispatch Tracker</Link>
-      </nav>
-      <button onClick={logout}>Logout</button>
-    </div>
+    <ProtectedRoute>
+      <AppShell>{children}</AppShell>
+    </ProtectedRoute>
   );
 }
 
@@ -32,33 +24,33 @@ export default function App() {
       <Route
         path="/"
         element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
+          <Shell>
+            <Dashboard />
+          </Shell>
         }
       />
       <Route
         path="/customer"
         element={
-          <ProtectedRoute>
+          <Shell>
             <CustomerRoom />
-          </ProtectedRoute>
+          </Shell>
         }
       />
       <Route
         path="/technician"
         element={
-          <ProtectedRoute>
+          <Shell>
             <TechnicianConsole />
-          </ProtectedRoute>
+          </Shell>
         }
       />
       <Route
         path="/dispatch"
         element={
-          <ProtectedRoute>
+          <Shell>
             <DispatchTracker />
-          </ProtectedRoute>
+          </Shell>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

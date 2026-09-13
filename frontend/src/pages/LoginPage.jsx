@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import Logo from "../components/Logo";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -25,25 +26,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-page">
-      <h1>DiagnoZ</h1>
-      <form onSubmit={handleSubmit} className="auth-form">
-        <label>
-          Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </label>
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Logging in..." : "Login"}
-        </button>
-      </form>
-      <p>
-        No account? <Link to="/register">Register</Link>
-      </p>
+    <div className="auth-shell">
+      <div className="auth-page">
+        <Logo />
+        <p className="auth-subtitle">Welcome back. Sign in to continue your diagnosis.</p>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <label>
+            Email
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
+          <label>
+            Password
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </label>
+          {error && <p className="error">{error}</p>}
+          <button type="submit" disabled={submitting}>
+            {submitting ? "Logging in..." : "Login"}
+          </button>
+        </form>
+        <p className="auth-footer">
+          No account? <Link to="/register">Register</Link>
+        </p>
+      </div>
     </div>
   );
 }

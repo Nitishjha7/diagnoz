@@ -2,6 +2,13 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import AnnotationCanvas from "../components/AnnotationCanvas";
 
+const STATUS_BADGE = {
+  PENDING: "badge-warning",
+  ACCEPTED: "badge-neutral",
+  IN_PROGRESS: "badge-neutral",
+  COMPLETED: "badge-success",
+};
+
 export default function TechnicianConsole() {
   const [latitude, setLatitude] = useState("28.6139");
   const [longitude, setLongitude] = useState("77.2090");
@@ -63,8 +70,12 @@ export default function TechnicianConsole() {
   return (
     <div className="room">
       <h1>Technician Console</h1>
+      <p className="hint" style={{ marginBottom: 20 }}>
+        Manage your location, work through an assigned dispatch's dual-OTP lifecycle, and
+        draw annotations for a customer's live session.
+      </p>
 
-      <section>
+      <div className="panel">
         <h2>My Location</h2>
         <label>
           Latitude
@@ -75,49 +86,68 @@ export default function TechnicianConsole() {
           <input value={longitude} onChange={(e) => setLongitude(e.target.value)} />
         </label>
         <button onClick={saveLocation}>Save Location</button>
-        {profileStatus && <p>{profileStatus}</p>}
-      </section>
+        {profileStatus && <p className="hint" style={{ marginTop: 8 }}>{profileStatus}</p>}
+      </div>
 
-      <section>
+      <div className="panel">
         <h2>Dispatch Lifecycle</h2>
         <label>
           Dispatch ID
           <input value={dispatchId} onChange={(e) => setDispatchId(e.target.value)} />
         </label>
         <button onClick={loadDispatch}>Load</button>
+
         {dispatch && (
           <div className="diagnosis-card">
-            <p>Status: {dispatch.dispatch_status}</p>
-            <p>Technician earnings: {dispatch.technician_earnings}</p>
+            <div className="kv-row" style={{ marginBottom: 8 }}>
+              <dt>Status</dt>
+              <dd>
+                <span className={`badge ${STATUS_BADGE[dispatch.dispatch_status] || "badge-neutral"}`}>
+                  {dispatch.dispatch_status}
+                </span>
+              </dd>
+            </div>
+            <div className="kv-row">
+              <dt>Technician Earnings</dt>
+              <dd>&#8377;{dispatch.technician_earnings}</dd>
+            </div>
 
-            {dispatch.dispatch_status === "PENDING" && <button onClick={accept}>Accept</button>}
+            {dispatch.dispatch_status === "PENDING" && (
+              <button style={{ marginTop: 12, width: "100%" }} onClick={accept}>
+                Accept
+              </button>
+            )}
 
             {dispatch.dispatch_status === "ACCEPTED" && (
-              <div>
+              <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
                 <input placeholder="Start OTP" value={startOtp} onChange={(e) => setStartOtp(e.target.value)} />
                 <button onClick={verifyStart}>Verify Start OTP</button>
               </div>
             )}
 
             {dispatch.dispatch_status === "IN_PROGRESS" && (
-              <div>
+              <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
                 <input placeholder="End OTP" value={endOtp} onChange={(e) => setEndOtp(e.target.value)} />
                 <button onClick={verifyEnd}>Verify End OTP</button>
               </div>
             )}
           </div>
         )}
-        {error && <p className="error">{error}</p>}
-      </section>
+        {error && <p className="error" style={{ marginTop: 8 }}>{error}</p>}
+      </div>
 
-      <section>
+      <div className="panel">
         <h2>Draw for Customer</h2>
         <label>
           Session ID
           <input value={sessionId} onChange={(e) => setSessionId(e.target.value)} />
         </label>
-        {sessionId && <AnnotationCanvas sessionId={sessionId} />}
-      </section>
+        {sessionId && (
+          <div className="video-stage" style={{ marginTop: 10 }}>
+            <AnnotationCanvas sessionId={sessionId} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

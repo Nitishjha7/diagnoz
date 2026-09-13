@@ -2,9 +2,11 @@ import { useCallback, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 
-export default function AudioTriageWidget({ sessionId }) {
+export default function AudioTriageWidget({ sessionId, onDiagnosis }) {
   const wsRef = useRef(null);
-  const [transcriptChunks, setTranscriptChunks] = useState([]);
+  const [messages, setMessages] = useState([
+    { from: "assistant", text: "Hi! Describe the issue with your appliance and I'll help diagnose it." },
+  ]);
   const [diagnosis, setDiagnosis] = useState(null);
   const [connected, setConnected] = useState(false);
 
@@ -25,9 +27,11 @@ export default function AudioTriageWidget({ sessionId }) {
       if (typeof event.data === "string") {
         const msg = JSON.parse(event.data);
         if (msg.type === "TRANSCRIPT_CHUNK") {
-          setTranscriptChunks((prev) => [...prev, msg.text]);
+          setMessages((prev) => [...prev, { from: "user", text: msg.text }]);
         } else if (msg.type === "DIAGNOSIS_COMPLETE") {
           setDiagnosis(msg.payload);
+          onDiagnosis?.(msg.payload);
+          setMessages((prev) => [...prev, { from: "assistant", text: msg.payload.voice_summary }]);
         }
       }
       // binary messages here would be synthesized TTS audio - play via AudioContext in a
@@ -42,27 +46,40 @@ export default function AudioTriageWidget({ sessionId }) {
   }
 
   return (
-    <div className="widget">
-      <h2>Voice Triage</h2>
-      {!connected && <button onClick={connect}>Connect</button>}
-      {connected && !recording && !diagnosis && <button onClick={start}>Start Talking</button>}
-      {recording && <button onClick={finishSpeaking}>Finish Speaking</button>}
+    <div className="assistant-panel">
+      <div className="assistant-tabs">
+        <button className="assistant-tab active">AI Assistant</button>
+        <button className="assistant-tab">Session Details</button>
+      </div>
 
-      <div className="transcript">
-        {transcriptChunks.map((chunk, i) => (
-          <p key={i}>{chunk}</p>
+      <div className="chat-log">
+        {messages.map((msg, i) => (
+          <div key={i} className={`chat-bubble ${msg.from}`}>
+            {msg.text}
+          </div>
         ))}
       </div>
 
-      {diagnosis && (
-        <div className="diagnosis-card">
-          <h3>Diagnosis</h3>
-          <p>Appliance: {diagnosis.appliance_type}</p>
-          <p>Issue: {diagnosis.suspected_issue}</p>
-          <p>Urgency: {diagnosis.urgency}</p>
-          <p>{diagnosis.voice_summary}</p>
-        </div>
-      )}
+      <div className="mic-cta">
+        {!connected && <button onClick={connect}>Connect</button>}
+        {connected && !recording && !diagnosis && (
+          <>
+            <button className="mic-button" onClick={start} title="Tap to speak">
+              &#127908;
+            </button>
+            <span className="mic-status">Tap to speak</span>
+          </>
+        )}
+        {recording && (
+          <>
+            <button className="mic-button recording" onClick={finishSpeaking} title="Finish speaking">
+              &#9632;
+            </button>
+            <span className="mic-status">Listening... tap to finish</span>
+          </>
+        )}
+        {diagnosis && <span className="mic-status">Diagnosis complete</span>}
+      </div>
     </div>
   );
 }
