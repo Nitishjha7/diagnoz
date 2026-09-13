@@ -4,9 +4,10 @@ Ye file har file / dependency ka **kaam aur reason** track karti hai, taaki baad
 interview me) yaad rahe ki har cheez kyun li gayi. Jaise-jaise code likha jayega, isko
 update karte rahenge.
 
-**Status:** Phase 1 aur Phase 2 implement ho chuke hain aur `docker compose` me verify kiya
-gaya hai. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md) aur [PHASE_2_NOTES.md](PHASE_2_NOTES.md)
-me. Phase 3 se aage ke liye neeche wale sections abhi bhi "planned intent" hain.
+**Status:** Phase 1, 2, aur 3 implement ho chuke hain aur `docker compose` me verify kiya gaya
+hai. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md), [PHASE_2_NOTES.md](PHASE_2_NOTES.md), aur
+[PHASE_3_NOTES.md](PHASE_3_NOTES.md) me. Phase 4 se aage ke liye neeche wale sections abhi
+bhi "planned intent" hain.
 
 ---
 
@@ -202,13 +203,16 @@ role se session detail. Ye session_id hi WebSocket URL me use hota hai.
 
 ## backend/app/websockets/canvas_sync.py
 
-**Real-time core #2.** `/ws/canvas/sync/{session_id}`. Live annotation overlay.
+**Real-time core #2.** `/ws/canvas/sync/{session_id}`. Live annotation overlay. **(Phase 3 —
+implemented, real Redis Pub/Sub, `redis.asyncio` se test kiya)**
 
-- Har session ka apna Redis channel: `canvas_sync:{session_id}`.
+- Har session ka apna Redis channel: `canvas_sync:{session_id}`. Har connection apna
+  `redis.asyncio.from_url(settings.REDIS_URL)` client banata hai (config se URL, hardcoded
+  nahi ab).
 - Do kaam parallel: (1) `receive_text()` se incoming draw events lena aur Redis pe
   `publish` karna, (2) `pubsub.listen()` se channel ke messages lekar socket pe `send_text`.
 - Dusra kaam ek background `asyncio.Task` me chalta hai (`redis_listener`), disconnect pe
-  `cancel`.
+  `cancel` + `pubsub.unsubscribe` + `aclose()` — connection leak nahi hota.
 - Coordinates normalized `[0.0, 1.0]` aate hain (`norm_x`, `norm_y`) — client apni canvas
   width/height se multiply karke actual pixel nikalta hai. Isliye 4K aur 1080p dono pe
   arrow sahi jagah dikhta hai.
@@ -216,32 +220,47 @@ role se session detail. Ye session_id hi WebSocket URL me use hota hai.
 **Kyun Redis Pub/Sub, in-memory dict nahi:** multi-pod deploy me alag pod pe alag peer ho
 sakta hai — Redis se sab pods ko broadcast milta hai. Single source of truth.
 
+**Verify kiya:** do WebSocket clients same session pe connect kiye, ek se DRAW event bheja,
+doosre pe exact wahi JSON receive hua.
+
 ---
 
-## backend/app/websockets/webrtc_signaling.py (planned)
+## backend/app/websockets/webrtc_signaling.py (Phase 3 — naya)
 
 `/ws/video/signal/{session_id}`. FastAPI sirf **signaling broker** hai — actual video/audio
 media WebRTC se peer-to-peer jaata hai, server se nahi (bandwidth bachta hai).
 
-- `offer` / `answer` / `ice_candidate` messages ko session ke dusre peer tak route karta
-  hai (Redis Pub/Sub se, canvas_sync jaisa hi pattern).
+- `offer` / `answer` / `ice_candidate` JSON messages ko session ke dusre peer(s) tak route
+  karta hai. In-memory `dict[session_id, list[WebSocket]]` room registry — canvas_sync ki
+  tarah Redis Pub/Sub nahi kiya kyunki single-instance deploy me dono peer same process pe
+  hote hain, koi cross-pod broadcast zaroorat nahi. Multi-replica scale karna ho to Redis pe
+  move karna padega (documented gap, TECHNICAL_SPEC section 8).
 - Production me TURN server (coturn) chahiye jab dono peer strict NAT ke peeche ho.
+
+**Verify kiya:** do clients (customer/technician) same session pe connect, ek se `offer`
+bheja, doosre pe wahi message forward hua.
 
 ---
 
 ## backend/app/api/v1/endpoints/streaming.py
 
 HTTP 206 Partial Content byte-range VOD engine — reference troubleshooting videos serve
-karne ke liye, poori file RAM me load kiye bina.
+karne ke liye, poori file RAM me load kiye bina. **(Phase 3 — implemented, JWT-protected)**
 
 - `Range: bytes=start-end` header parse karta hai.
 - `file.seek(start)` + generator jo 64KB chunks yield karta hai → `StreamingResponse` with
   status `206` aur `Content-Range` header.
 - Range invalid (start/end >= file_size) → `416 Requested Range Not Satisfiable`.
 - Range absent → poori file stream (status 200) with `Accept-Ranges: bytes`.
+- `Depends(get_current_user)` — JWT-protected, kyunki reference videos authenticated
+  diagnostic flow ka hissa hain, public content nahi.
 
 **Interview point:** scrubbing/seeking pe browser naya `Range` request bhejta hai; hum sirf
 requested slice disk se padhte hain — disk saturation aur memory bloat dono avoid.
+
+**Verify kiya:** 1MB test file pe — no-range → 200 full file; `bytes=100-199` → 206 with
+`Content-Range: bytes 100-199/1000000`; no token → 401; out-of-bounds range → 416. Saare 4
+pass.
 
 ---
 

@@ -25,5 +25,8 @@ class Settings(BaseSettings):
     TTS_API_KEY: str = ""
     TTS_VOICE: str = ""
 
+    REFERENCE_VIDEO_PATH: str = "/var/storage/diagnoz/reference_videos"
+    HLS_OUTPUT_PATH: str = "/var/storage/diagnoz/hls"
+
 
 settings = Settings()

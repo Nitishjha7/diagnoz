@@ -19,8 +19,11 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
   (`services/whisper_client.py`, `llm_triage.py`, `tts_client.py`) so the pipeline runs with
   zero external API keys. Verified with a real WebSocket client end-to-end, including DB
   persistence. Detail: [PHASE_2_NOTES.md](PHASE_2_NOTES.md)
-- ⬜ Empty placeholder files (Phase 3+): `canvas_sync.py`, `streaming.py`, `dispatch.py`,
-  `media_transcode.py`
+- ✅ **Phase 3 complete** — `/ws/video/signal` (WebRTC signaling broker), `/ws/canvas/sync`
+  (Redis Pub/Sub annotation broadcast), `/api/v1/videos/stream` (HTTP 206 byte-range, JWT
+  protected). All verified with real multi-client WebSocket tests + range-request HTTP tests.
+  Detail: [PHASE_3_NOTES.md](PHASE_3_NOTES.md)
+- ⬜ Empty placeholder files (Phase 4+): `dispatch.py`, `media_transcode.py`
 - ❌ Frontend (React code not started; `frontend/Dockerfile` empty, service commented out
   of `docker-compose.yml` until Frontend phase)
 
