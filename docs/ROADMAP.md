@@ -39,7 +39,13 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
   Playwright against the real running backend in both dev-server mode and the fully
   Dockerized Nginx-served build — a real CORS bug was caught and fixed in the process.
   Detail: [PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md)
-- **Backend (Phase 1–5) and Frontend are both fully implemented and verified.**
+- ✅ **Evaluation harness complete** — `eval/scenarios.json` (18 triage + 4 dispatch labeled
+  scenarios) + `eval/run_eval.py`, run against the real system. Measured: 100% appliance-type
+  accuracy, 88.9% urgency accuracy, 100% dispatch KNN precision. Caught and fixed a real
+  substring-matching bug in `llm_triage.py` along the way. Numbers are in
+  `docs/INTERVIEW_NOTES.md` section 3a. Detail: [PHASE_EVAL_NOTES.md](PHASE_EVAL_NOTES.md)
+- **Project is functionally complete: backend (Phase 1–5), frontend, and evaluation harness
+  are all implemented and verified against the real running system.**
 
 ---
 

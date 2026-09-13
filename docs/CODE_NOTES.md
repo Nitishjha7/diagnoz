@@ -4,11 +4,10 @@ Ye file har file / dependency ka **kaam aur reason** track karti hai, taaki baad
 interview me) yaad rahe ki har cheez kyun li gayi. Jaise-jaise code likha jayega, isko
 update karte rahenge.
 
-**Status:** Backend (Phase 1–5) aur Frontend (React 19 + Vite) dono complete + verified hain.
-Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md), [PHASE_2_NOTES.md](PHASE_2_NOTES.md),
-[PHASE_3_NOTES.md](PHASE_3_NOTES.md), [PHASE_4_NOTES.md](PHASE_4_NOTES.md),
-[PHASE_5_NOTES.md](PHASE_5_NOTES.md), aur [PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md)
-me. Baaki sirf evaluation script + INTERVIEW_NOTES me real numbers.
+**Status:** Backend (Phase 1–5), Frontend (React 19 + Vite), aur evaluation harness — sab
+complete + verified hain. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md) se
+[PHASE_5_NOTES.md](PHASE_5_NOTES.md) tak, [PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md),
+aur [PHASE_EVAL_NOTES.md](PHASE_EVAL_NOTES.md) me. Project functionally complete hai.
 
 ---
 
@@ -451,6 +450,20 @@ fail ho jaata.
 Real secrets (`.env`) `.gitignore` me hai. `.env.example` sirf template hai — batata hai
 konse vars chahiye (`DATABASE_URL`, `REDIS_URL`, `JWT_SECRET_KEY`, `LLM_API_KEY`,
 `TTS_API_KEY`, `S3_*`) bina real values leak kiye.
+
+---
+
+## eval/run_eval.py + eval/scenarios.json (naya)
+
+Real system ke against measurement — 18 labeled triage transcripts, 4 labeled dispatch
+scenarios. Real `analyze_appliance_issue()` aur real PostGIS `find_nearest_available_technician()`
+call karta hai, mocks nahi. Dispatch eval apna khud ka isolation manage karta hai (pre-existing
++ pichhle scenarios ke technicians temporarily unavailable karke) taaki shared/demo DB pe bhi
+safe se rerun ho sake — end me sab kuch cleanup + restore hota hai.
+
+**Measured (real run):** appliance-type accuracy 100% (18/18), urgency accuracy 88.9% (16/18),
+dispatch KNN precision 100% (4/4). Detail + 2 real bugs jo isi process me pakde gaye:
+[PHASE_EVAL_NOTES.md](PHASE_EVAL_NOTES.md).
 
 ---
 

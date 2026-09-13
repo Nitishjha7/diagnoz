@@ -38,16 +38,22 @@ FUNCTION_SCHEMA = {
 }
 
 
+def _contains_keyword(text_lower: str, keyword: str) -> bool:
+    # Word-boundary match, not substring - "ac" must not match inside "machine".
+    return re.search(rf"\b{re.escape(keyword)}\b", text_lower) is not None
+
+
 def _detect_appliance(text_lower: str) -> str:
-    for keyword, appliance in APPLIANCE_KEYWORDS.items():
-        if keyword in text_lower:
+    # Multi-word keywords first so "washing machine" wins over a later bare "ac"/"washer".
+    for keyword, appliance in sorted(APPLIANCE_KEYWORDS.items(), key=lambda kv: -len(kv[0])):
+        if _contains_keyword(text_lower, keyword):
             return appliance
     return "UNKNOWN"
 
 
 def _detect_urgency(text_lower: str) -> str:
     for level, keywords in URGENCY_KEYWORDS.items():
-        if any(keyword in text_lower for keyword in keywords):
+        if any(_contains_keyword(text_lower, keyword) for keyword in keywords):
             return level
     return "LOW"
 

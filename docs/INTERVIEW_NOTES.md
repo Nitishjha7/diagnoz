@@ -54,6 +54,39 @@ So the *idea* is market-validated. What DiagnoZ demonstrates is that you can arc
 
 **Positioning for interviews:** You're not claiming to have built the next unicorn. You're showing that you can identify a real inefficiency, design a technically sound system for it, and think about the product and business layer — not just the code.
 
+### Measured numbers (not hand-waved)
+
+Ran `eval/run_eval.py` against the actual live system (not unit tests with mocks) —
+`eval/scenarios.json` has 18 labeled triage transcripts and 4 labeled dispatch scenarios:
+
+| Metric | Result |
+|---|---|
+| Triage appliance-type extraction accuracy | **100%** (18/18) |
+| Triage urgency-level accuracy | **88.9%** (16/18) |
+| Dispatch KNN precision (nearest-available-technician match) | **100%** (4/4) |
+
+**Say this if asked "did you actually measure anything or just build it?"** — yes, and the
+numbers aren't artificially perfect: the urgency classifier has a documented failure mode
+(see below), which is a stronger answer than claiming 100% across the board.
+
+**The 2 urgency misses, and why they're left as documented limitations, not silently
+special-cased:**
+- *"AC not working, no cooling, no error, nothing urgent though"* → classified `HIGH`
+  (should be `MEDIUM`) — the keyword matcher hits "urgent" as a substring even though the
+  sentence explicitly negates it ("nothing urgent *though*"). This is the classic limitation
+  of keyword-based extraction vs. a real LLM with actual language understanding — a strong,
+  honest talking point for "why would a real LLM call matter here."
+- *"Mera chiller thoda ajeeb awaaz kar raha hai but chal raha hai theek se"* (device makes an
+  odd noise but otherwise runs fine) → classified `LOW` (should arguably be `MEDIUM`) — no
+  English urgency keyword present at all in a Hindi/Hinglish sentence; the keyword list is
+  English-only. Same root cause: this is exactly the gap a real multilingual LLM call closes.
+
+**A real bug this eval run caught in the code itself (already fixed):** the original keyword
+matcher used plain substring search, so `"ac"` matched inside `"machine"` (as in "washing
+**mac**hine") and misclassified several washing-machine transcripts as AC. Fixed with a
+word-boundary regex match. This is worth mentioning as an example of "the eval script didn't
+just report a number, it found and drove a real fix."
+
 ---
 
 ## 4. What the System Actually Does (Full Flow)
@@ -212,6 +245,14 @@ A: Video transcoding and PDF generation are CPU-heavy and slow — doing them sy
 
 **Q: How do you keep the canvas annotation in sync in real time?**
 A: Coordinates are normalized to a 0.0–1.0 range so they map correctly regardless of screen resolution, then broadcast via Redis Pub/Sub to all connected clients in the same session room with sub-20ms latency.
+
+**Q: How did you actually measure whether the triage/dispatch logic works, instead of just eyeballing it?**
+A: Wrote `eval/run_eval.py` — 18 labeled triage transcripts and 4 labeled dispatch scenarios,
+run against the real live system (real DB, real PostGIS queries, real triage function), not
+mocks. Got 100% appliance-type accuracy, 88.9% urgency accuracy, 100% dispatch KNN precision.
+The eval also caught a real bug — a substring-matching bug where "ac" matched inside
+"machine" — which I fixed. I'd rather show two honest failures with a clear root cause than
+claim a suspiciously perfect 100% across the board.
 
 ### Product / Business
 

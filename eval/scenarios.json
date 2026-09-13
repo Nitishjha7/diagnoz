@@ -1,0 +1,133 @@
+{
+  "triage_scenarios": [
+    {
+      "id": "t01",
+      "transcript": "Mera AC cooling nahi kar raha aur compressor se rattling sound aa rahi hai",
+      "expected": { "appliance_type": "AC", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t02",
+      "transcript": "My air conditioner is sparking and I can smell burning, please help urgently",
+      "expected": { "appliance_type": "AC", "urgency": "HIGH" }
+    },
+    {
+      "id": "t03",
+      "transcript": "The refrigerator is not cooling properly since yesterday",
+      "expected": { "appliance_type": "REFRIGERATOR", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t04",
+      "transcript": "Fridge is making a loud noise but otherwise working fine",
+      "expected": { "appliance_type": "REFRIGERATOR", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t05",
+      "transcript": "Mera washing machine start hi nahi ho raha, koi error nahi dikha raha",
+      "expected": { "appliance_type": "WASHING_MACHINE", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t06",
+      "transcript": "Washer is leaking water everywhere, it's an emergency",
+      "expected": { "appliance_type": "WASHING_MACHINE", "urgency": "HIGH" }
+    },
+    {
+      "id": "t07",
+      "transcript": "Commercial chiller showing an error code E4 on the display",
+      "expected": { "appliance_type": "CHILLER", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t08",
+      "transcript": "Geyser is not heating water at all",
+      "expected": { "appliance_type": "WATER_HEATER", "urgency": "LOW" }
+    },
+    {
+      "id": "t09",
+      "transcript": "My water heater is leaking and there is smoke coming out",
+      "expected": { "appliance_type": "WATER_HEATER", "urgency": "HIGH" }
+    },
+    {
+      "id": "t10",
+      "transcript": "AC ka mode wrong set ho gaya hai shayad, cooling nahi ho raha",
+      "expected": { "appliance_type": "AC", "urgency": "LOW" }
+    },
+    {
+      "id": "t11",
+      "transcript": "Just checking in, the refrigerator seems fine now, no issues",
+      "expected": { "appliance_type": "REFRIGERATOR", "urgency": "LOW" }
+    },
+    {
+      "id": "t12",
+      "transcript": "There's a burning smell from the washing machine, very urgent",
+      "expected": { "appliance_type": "WASHING_MACHINE", "urgency": "HIGH" }
+    },
+    {
+      "id": "t13",
+      "transcript": "Mera chiller thoda ajeeb awaaz kar raha hai but chal raha hai theek se",
+      "expected": { "appliance_type": "CHILLER", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t14",
+      "transcript": "AC not working, no cooling, no error, nothing urgent though",
+      "expected": { "appliance_type": "AC", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t15",
+      "transcript": "Water heater sparking, this looks dangerous, need help now",
+      "expected": { "appliance_type": "WATER_HEATER", "urgency": "HIGH" }
+    },
+    {
+      "id": "t16",
+      "transcript": "Fridge compressor rattling loudly, otherwise cooling fine",
+      "expected": { "appliance_type": "REFRIGERATOR", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t17",
+      "transcript": "Washing machine not working, giving an error message on screen",
+      "expected": { "appliance_type": "WASHING_MACHINE", "urgency": "MEDIUM" }
+    },
+    {
+      "id": "t18",
+      "transcript": "Just a routine question about my AC, nothing broken",
+      "expected": { "appliance_type": "AC", "urgency": "LOW" }
+    }
+  ],
+  "dispatch_scenarios": [
+    {
+      "id": "d01",
+      "description": "customer near technician A, should match A",
+      "customer": { "latitude": 28.6139, "longitude": 77.209 },
+      "technicians": [
+        { "name": "A", "latitude": 28.614, "longitude": 77.2091, "is_available": true },
+        { "name": "B", "latitude": 28.7, "longitude": 77.3, "is_available": true }
+      ],
+      "expected_match": "A"
+    },
+    {
+      "id": "d02",
+      "description": "nearest technician is unavailable, should match the next nearest available one",
+      "customer": { "latitude": 28.6139, "longitude": 77.209 },
+      "technicians": [
+        { "name": "A", "latitude": 28.614, "longitude": 77.2091, "is_available": false },
+        { "name": "B", "latitude": 28.62, "longitude": 77.21, "is_available": true }
+      ],
+      "expected_match": "B"
+    },
+    {
+      "id": "d03",
+      "description": "only technician is outside the 5km radius, should match nobody",
+      "customer": { "latitude": 28.6139, "longitude": 77.209 },
+      "technicians": [{ "name": "C", "latitude": 19.076, "longitude": 72.8777, "is_available": true }],
+      "expected_match": null
+    },
+    {
+      "id": "d04",
+      "description": "two available technicians at different distances, should match the closer one",
+      "customer": { "latitude": 28.6139, "longitude": 77.209 },
+      "technicians": [
+        { "name": "D_far", "latitude": 28.65, "longitude": 77.24, "is_available": true },
+        { "name": "D_near", "latitude": 28.615, "longitude": 77.21, "is_available": true }
+      ],
+      "expected_match": "D_near"
+    }
+  ]
+}

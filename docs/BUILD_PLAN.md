@@ -26,6 +26,7 @@ kitna time lagega. Har session ke baad isko update karte rahenge (✅ mark karte
 | 3 | Phase 4 | PostGIS KNN dispatch + Redis 5-min lock, Dual-OTP state machine | ✅ |
 | 3 | Phase 5 | Celery: FFmpeg HLS transcode + WeasyPrint PDF + 85/15 payout split | ✅ |
 | 4 | Frontend + wiring | React 19 demo UI (CustomerRoom, TechnicianConsole, DispatchTracker), end-to-end wiring, local run verify | ✅ |
+| 4 | Eval script | `eval/scenarios.json` + `run_eval.py`, real measured numbers in INTERVIEW_NOTES.md | ✅ |
 
 **Claude ka effort:** ~4 working sessions. Back-to-back karein toh 1–2 din.
 
@@ -79,8 +80,9 @@ Detail har phase ka [ROADMAP.md](ROADMAP.md) me hai.
 
 ## Next Step
 
-Backend (Phase 1–5) aur Frontend dono complete ho chuke hain, real browser me end-to-end
-verify kiya (Vite dev mode + Dockerized Nginx mode dono). Detail
-[PHASE_1_NOTES.md](PHASE_1_NOTES.md) se [PHASE_5_NOTES.md](PHASE_5_NOTES.md) tak, aur
-[PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md). Baaki sirf: evaluation script +
-`INTERVIEW_NOTES.md` me real measured numbers.
+**Poora project complete hai** — Backend (Phase 1–5), Frontend, aur Evaluation harness, sab
+real-verify kiye gaye (docker compose, real browser, real DB queries — mocks nahi). Detail
+[PHASE_1_NOTES.md](PHASE_1_NOTES.md) se [PHASE_5_NOTES.md](PHASE_5_NOTES.md) tak,
+[PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md), aur [PHASE_EVAL_NOTES.md](PHASE_EVAL_NOTES.md).
+[INTERVIEW_NOTES.md](INTERVIEW_NOTES.md) me real measured numbers bhar diye gaye hain
+(section 3a). Ab bas Nitish ka part — code trace karna aur practice karna — baaki hai.
