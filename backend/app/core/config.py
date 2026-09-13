@@ -28,5 +28,10 @@ class Settings(BaseSettings):
     REFERENCE_VIDEO_PATH: str = "/var/storage/diagnoz/reference_videos"
     HLS_OUTPUT_PATH: str = "/var/storage/diagnoz/hls"
 
+    S3_ENDPOINT_URL: str = "http://minio:9000"
+    S3_ACCESS_KEY: str = "minioadmin"
+    S3_SECRET_KEY: str = "minioadmin"
+    S3_BUCKET: str = "diagnoz-media"
+
 
 settings = Settings()

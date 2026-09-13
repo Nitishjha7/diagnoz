@@ -23,7 +23,7 @@ services:
       - "6381:6379"
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -69,12 +69,32 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/2
     volumes:
       - ./backend:/app
+      - diagnoz_media:/var/storage/diagnoz
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
     command: celery -A workers.celery_app worker --loglevel=info
+
+  beat:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://diagnoz:diagnoz@db:5432/diagnoz
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: celery -A workers.celery_app beat --loglevel=info
 
   # frontend service is added in the Frontend phase (docs/BUILD_PLAN.md session 4) once
   # frontend/ has real React code and a working Dockerfile.
@@ -89,3 +109,4 @@ services:
 volumes:
   diagnoz_pgdata:
   diagnoz_minio:
+  diagnoz_media:

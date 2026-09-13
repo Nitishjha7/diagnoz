@@ -23,6 +23,7 @@ class DispatchOut(BaseModel):
     invoice_pdf_url: str | None
     created_at: datetime
     completed_at: datetime | None
+    settled_at: datetime | None
 
     model_config = {"from_attributes": True}
 
