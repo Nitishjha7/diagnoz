@@ -209,6 +209,11 @@ Selling this to enterprise service companies means long procurement and integrat
 
 ## 9. How to Present This in an Interview (Script + Structure)
 
+> **For the exact click-by-click live demo walkthrough** — what to open, what to click, what
+> to say at each step, and a fallback plan if Docker doesn't cooperate in the room — see
+> [DEMO_SCRIPT.md](DEMO_SCRIPT.md). This section below is the presentation *structure and
+> mindset*; that doc is the *hands-on script*.
+
 **Structure to follow, in order:**
 1. **Problem first** (10-15 seconds) — the redundant-dispatch inefficiency
 2. **Solution overview** (20-30 seconds) — the 30-second pitch from Section 1

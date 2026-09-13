@@ -189,3 +189,4 @@ stack, then `npm run dev` in `frontend/` for a hot-reloading UI.
 | [docs/PHASE_FRONTEND_NOTES.md](docs/PHASE_FRONTEND_NOTES.md) | Frontend build + real-browser verification notes |
 | [docs/PHASE_EVAL_NOTES.md](docs/PHASE_EVAL_NOTES.md) | Evaluation harness methodology and results |
 | [docs/INTERVIEW_NOTES.md](docs/INTERVIEW_NOTES.md) | Pitch, ROI numbers, trade-offs, measured results, anticipated Q&A |
+| [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Step-by-step live demo walkthrough for interviews — exact clicks, what to say, fallback plan |
