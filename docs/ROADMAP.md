@@ -23,7 +23,13 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
   (Redis Pub/Sub annotation broadcast), `/api/v1/videos/stream` (HTTP 206 byte-range, JWT
   protected). All verified with real multi-client WebSocket tests + range-request HTTP tests.
   Detail: [PHASE_3_NOTES.md](PHASE_3_NOTES.md)
-- ⬜ Empty placeholder files (Phase 4+): `dispatch.py`, `media_transcode.py`
+- ✅ **Phase 4 complete** — PostGIS KNN dispatch (`services/spatial_matcher.py`), Redis
+  distributed lock (5-min TTL), dual-OTP state machine (`PENDING→ACCEPTED→IN_PROGRESS→
+  COMPLETED`), technician profile/location/availability endpoints. Verified full lifecycle
+  end-to-end including a real bug found + fixed (KNN returning the wrong FK). Detail:
+  [PHASE_4_NOTES.md](PHASE_4_NOTES.md)
+- ⬜ Empty placeholder files (Phase 5+): `media_transcode.py` (report/payout tasks not yet
+  created)
 - ❌ Frontend (React code not started; `frontend/Dockerfile` empty, service commented out
   of `docker-compose.yml` until Frontend phase)
 

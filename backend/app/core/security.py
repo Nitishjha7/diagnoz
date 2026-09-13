@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -14,6 +15,18 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
+
+def generate_otp() -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def hash_otp(otp: str) -> str:
+    return pwd_context.hash(otp)
+
+
+def verify_otp(otp: str, otp_hash: str) -> bool:
+    return pwd_context.verify(otp, otp_hash)
 
 
 def create_access_token(subject: str, role: str) -> str:

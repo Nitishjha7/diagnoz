@@ -4,10 +4,10 @@ Ye file har file / dependency ka **kaam aur reason** track karti hai, taaki baad
 interview me) yaad rahe ki har cheez kyun li gayi. Jaise-jaise code likha jayega, isko
 update karte rahenge.
 
-**Status:** Phase 1, 2, aur 3 implement ho chuke hain aur `docker compose` me verify kiya gaya
-hai. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md), [PHASE_2_NOTES.md](PHASE_2_NOTES.md), aur
-[PHASE_3_NOTES.md](PHASE_3_NOTES.md) me. Phase 4 se aage ke liye neeche wale sections abhi
-bhi "planned intent" hain.
+**Status:** Phase 1 se 4 tak implement ho chuke hain aur `docker compose` me verify kiya gaya
+hai. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md), [PHASE_2_NOTES.md](PHASE_2_NOTES.md),
+[PHASE_3_NOTES.md](PHASE_3_NOTES.md), aur [PHASE_4_NOTES.md](PHASE_4_NOTES.md) me. Phase 5
+se aage ke liye neeche wale sections abhi bhi "planned intent" hain.
 
 ---
 
@@ -29,6 +29,7 @@ bhi "planned intent" hain.
 | `passlib[bcrypt]` | Password + OTP hashing | `hashed_password`, `start_otp_hash`, `end_otp_hash` — kabhi plain store nahi |
 | `bcrypt==4.0.1` | Passlib ka bcrypt backend, pinned | `bcrypt` 5.x me passlib 1.7.4 ke saath incompatibility hai (`password cannot be longer than 72 bytes` error backend detection ke waqt hi aata hai) — 4.0.1 pe pin karna padha |
 | `python-multipart` | Form/file upload parsing | OAuth2 password form (`/auth/login`) aur video upload endpoint ke liye |
+| `shapely` | Python geometry objects (`Point`, etc.) | `geoalchemy2.shape.from_shape()` ko chahiye Python lat/lon se PostGIS geometry banane ke liye (technician location update, dispatch customer_location) |
 
 FFmpeg, WeasyPrint, boto3, faster-whisper, httpx — ye Phase 2/5 me add honge jab unki
 zaroorat aayegi (abhi rakhna scope-creep hota).
@@ -264,20 +265,61 @@ pass.
 
 ---
 
+## backend/app/services/spatial_matcher.py (Phase 4 — naya)
+
+- **`find_nearest_available_technician()`** — raw SQL PostGIS KNN query — `is_available =
+  TRUE` + `ST_DWithin(current_location::geography, point::geography, 5000)` (5km hard radius
+  filter, accurate great-circle distance) + `ORDER BY current_location <-> point` (KNN `<->`
+  operator, GIST-index-assisted, `O(log N)`, planar geometry — index ke liye cast nahi kiya)
+  + `LIMIT 1`. Returns `user_id` (not `technician_profiles.id` — dispatch FK `users.id` ko
+  point karta hai; ye ek real bug tha jo verification me pakda gaya, neeche detail hai).
+- **`acquire_technician_lock()` / `release_technician_lock()`** — Redis `SET NX EX 300` /
+  `DELETE` on `lock:technician:{user_id}`. Dispatch creation ke race window (KNN match se DB
+  commit tak) ko cover karta hai; ongoing job ke dauraan asli "busy" signal
+  `technician_profiles.is_available` hai (persistent, TTL nahi).
+
+---
+
+## backend/app/api/v1/endpoints/technicians.py (Phase 4 — naya)
+
+Technician apna geo-profile manage karta hai: `POST /me/profile` (create/update location),
+`PATCH /me/location`, `PATCH /me/availability`. Sab `require_roles("TECHNICIAN")` se
+protected. `geoalchemy2.shape.from_shape(Point(lon, lat), srid=4326)` se Python
+lat/lon → PostGIS geometry banta hai (`shapely` dependency isi ke liye).
+
+---
+
 ## backend/app/api/v1/endpoints/dispatch.py
 
-Geospatial dispatch + Dual-OTP state machine.
+Geospatial dispatch + Dual-OTP state machine. **(Phase 4 — implemented aur full lifecycle
+verify kiya)**
 
-- **KNN match:** PostGIS query — `is_available = TRUE` + `ST_DWithin(..., 5000)` (5km
-  filter, GIST index use hota hai) + `ORDER BY current_location <-> point` (KNN operator,
-  index-assisted nearest neighbor) + `LIMIT 1`.
-- **Distributed lock:** match hone pe Redis `SET lock:technician:{id} NX EX 300` — 5 min ke
-  liye technician hold, taaki do dispatcher ek hi banda claim na karein.
-- **OTP:** `start_otp` aur `end_otp` generate, customer ko bhejo, hash DB me
-  (`passlib.bcrypt`). Technician arrival pe `start_otp` verify → `IN_PROGRESS`. Kaam khatam
-  pe `end_otp` verify → `COMPLETED`. Har transition atomic (DB transaction + status CHECK).
+- **`POST /dispatch`** (CUSTOMER) — KNN match → Redis lock → `start_otp`/`end_otp` generate
+  (`secrets.randbelow`, 6-digit) → dono ka bcrypt hash DB me → dispatch row `PENDING` →
+  plaintext OTPs response me **ek hi baar** return (real product me SMS jaata, yahan
+  simplification hai).
+- **`POST /dispatch/{id}/accept`** (assigned TECHNICIAN only) — `PENDING → ACCEPTED`,
+  technician `is_available = False` (taaki KNN dobara match na kare).
+- **`POST /dispatch/{id}/verify-start-otp`** — `ACCEPTED → IN_PROGRESS`, `start_otp_hash`
+  verify.
+- **`POST /dispatch/{id}/verify-end-otp`** — `IN_PROGRESS → COMPLETED`, `end_otp_hash`
+  verify, `platform_commission_fee` (15%) + `technician_earnings` (85% − 1% TDS) compute,
+  `completed_at` set, technician `is_available = True` restore, Redis lock release.
+- Har transition pe do checks stack hote hain: role (`require_roles("TECHNICIAN")`) AND
+  ownership (`dispatch.technician_id == current_user.id`) — koi doosra technician kisi aur
+  ka job complete na kar sake.
 
-**Kyun hash:** DB leak ho jaye to bhi OTP se koi job hijack na kar sake.
+**Kyun hash:** DB leak ho jaye to bhi OTP se koi job hijack na kar sake. Password jaisa hi
+`passlib.bcrypt` primitive reuse kiya — alag hashing scheme ki zaroorat nahi thi.
+
+**Bug jo verification me pakda gaya:** pehla version `technician_profiles.id` return kar raha
+tha KNN se, lekin `service_dispatches.technician_id` FK `users.id` hai — dispatch create karte
+hi `IntegrityError: ForeignKeyViolation` aaya. `user_id` return karke fix kiya. Ye exactly
+wahi bug hai jo sirf real end-to-end run se pakda jaata hai, code review se nahi.
+
+**Verify kiya:** poora lifecycle — no-match case (404), distributed lock (409 on concurrent
+request), wrong OTP (400), full `PENDING→ACCEPTED→IN_PROGRESS→COMPLETED`, aur completion ke
+baad lock release + technician turant dobara available (naya dispatch turant match hua).
 
 ---
 
