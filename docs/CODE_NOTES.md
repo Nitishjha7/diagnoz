@@ -4,9 +4,9 @@ Ye file har file / dependency ka **kaam aur reason** track karti hai, taaki baad
 interview me) yaad rahe ki har cheez kyun li gayi. Jaise-jaise code likha jayega, isko
 update karte rahenge.
 
-**Status:** Phase 1 (foundation) implement ho chuka hai aur `docker compose` me verify kiya
-gaya hai. Detail neeche [PHASE_1_NOTES.md](PHASE_1_NOTES.md) me. Phase 2 se aage ke liye
-neeche wale sections abhi bhi "planned intent" hain.
+**Status:** Phase 1 aur Phase 2 implement ho chuke hain aur `docker compose` me verify kiya
+gaya hai. Detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md) aur [PHASE_2_NOTES.md](PHASE_2_NOTES.md)
+me. Phase 3 se aage ke liye neeche wale sections abhi bhi "planned intent" hain.
 
 ---
 
@@ -141,21 +141,62 @@ token `/me` → 401. Sab pass.
 
 ---
 
+## backend/app/services/ (Phase 2 — naya)
+
+Provider-agnostic service layer — TECHNICAL_SPEC file structure me
+`services/{whisper_client,llm_triage,tts_client}.py` planned tha, wahi bana. Har ek ka apna
+**offline fallback** hai taaki bina kisi paid API key ke poora pipeline chal jaaye:
+
+- **`whisper_client.py`** — `transcribe_audio_chunk()`. Abhi `audioop.rms()` se silence vs
+  signal detect karke placeholder transcript deta hai. Real `faster-whisper` yahi function ke
+  andar plug hoga — signature/contract change nahi hoga.
+- **`llm_triage.py`** — `analyze_appliance_issue()`. Keyword-based extractor:
+  `APPLIANCE_KEYWORDS` dict se appliance type, `URGENCY_KEYWORDS` se HIGH/MEDIUM/LOW. Real LLM
+  function-calling ke liye `FUNCTION_SCHEMA` already defined hai, `settings.LLM_API_KEY` set
+  hote hi wahan real API call jaayegi.
+- **`tts_client.py`** — `synthesize_speech_stream()`. `TTS_API_KEY` na ho to synthetic 440Hz
+  sine-wave PCM chunks generate karta hai — ye prove karta hai ki streaming/framing contract
+  sahi hai, bina real voice model ke.
+
+**Kyun stub-in-production, mock-in-tests nahi:** `docker compose up` se turant poora demo
+chal jaata hai, koi API key maangta hi nahi. Jab real provider chahiye ho, sirf `if
+settings.LLM_API_KEY:` branch ke andar call daalni hai.
+
+---
+
 ## backend/app/websockets/audio_triage.py
 
 **Project ka real-time core #1.** `/ws/audio/triage/{session_id}`.
 
 - Browser raw 16kHz mono 16-bit PCM binary chunks bhejta hai (base64 nahi — 33% overhead
   aur string encode/decode bachta hai).
-- `bytearray` buffer me accumulate; ~48,000 bytes (~1.5s) hone pe ek STT inference.
+- `bytearray` buffer me accumulate; ~48,000 bytes (~1.5s) hone pe ek STT inference
+  (`services.whisper_client`).
 - Partial transcript `TRANSCRIPT_CHUNK` JSON se wapas (live caption feel).
 - Jab client `text` frame bhejta hai (customer ne bolna khatam kiya) → full transcript LLM
-  ko jaata hai **function-calling schema** ke saath → structured `{appliance_type,
-  suspected_issue, urgency}` nikalta hai → `DIAGNOSIS_COMPLETE` JSON.
-- Phir TTS stream: synthesized PCM `send_bytes()` se wapas, target < 500ms.
+  ko jaata hai **function-calling schema** ke saath (`services.llm_triage`) → structured
+  `{appliance_type, suspected_issue, urgency}` nikalta hai → session row me persist
+  (`voice_transcript`, `ai_structured_summary`) → `DIAGNOSIS_COMPLETE` JSON.
+- Phir TTS stream (`services.tts_client`): synthesized PCM `send_bytes()` se wapas.
 
 **Design choice:** `receive()` (generic) use kiya `receive_bytes()`/`receive_text()` ke
 bajaye — kyunki ek hi socket pe dono aa sakte hain (audio binary + control text).
+
+**DB write WebSocket ke andar `SessionLocal()` se direct** — `get_db` FastAPI dependency
+sirf HTTP request/response cycle ke liye hai, long-lived socket ke liye nahi. Har diagnosis
+event pe apna session open/close hota hai.
+
+**Verify kiya:** ek real Python `websockets` client se (container ke andar chalaya) audio
+bytes bheje, transcript chunk mila, text bhej ke diagnosis + audio packets mile, aur DB me
+`GET /api/v1/sessions/{id}` se confirm kiya ki transcript + summary save hui.
+
+---
+
+## backend/app/api/v1/endpoints/sessions.py (Phase 2 — naya)
+
+`POST /api/v1/sessions` (CUSTOMER role required) — naya `DiagnosticSession` row banata hai
+`session_status="INITIATED"` ke saath. `GET /api/v1/sessions/{id}` — kisi bhi authenticated
+role se session detail. Ye session_id hi WebSocket URL me use hota hai.
 
 ---
 

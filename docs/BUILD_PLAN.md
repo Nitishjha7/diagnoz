@@ -21,7 +21,7 @@ kitna time lagega. Har session ke baad isko update karte rahenge (✅ mark karte
 | Session | Phase | Deliverable | Status |
 |---|---|---|---|
 | 1 | Phase 1 | SQLAlchemy models, PostGIS + Alembic migration, JWT/RBAC auth, `docker-compose.yml` chalu (db+redis+minio+backend+worker) | ✅ |
-| 1 | Phase 2 | `/ws/audio/triage` (binary PCM → STT → LLM function calling → TTS) | ⬜ |
+| 1 | Phase 2 | `/ws/audio/triage` (binary PCM → STT → LLM function calling → TTS), sessions API | ✅ |
 | 2 | Phase 3 | `/ws/video/signal` (WebRTC SDP/ICE broker), `/ws/canvas/sync` (normalized coords + Redis Pub/Sub), `/api/v1/videos/stream` (HTTP 206 byte-range) | ⬜ |
 | 3 | Phase 4 + 5 | PostGIS KNN dispatch + Redis 5-min lock, Dual-OTP state machine, Celery: FFmpeg HLS transcode + WeasyPrint PDF + 85/15 payout split | ⬜ |
 | 4 | Frontend + wiring | React 19 demo UI (CustomerRoom, TechnicianConsole, DispatchTracker), end-to-end wiring, local run verify | ⬜ |
@@ -78,5 +78,6 @@ Detail har phase ka [ROADMAP.md](ROADMAP.md) me hai.
 
 ## Next Step
 
-Phase 1 complete ho chuka hai — detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md) me. Nitish ready
-ho toh bolo "Phase 2 shuru karo" (audio triage).
+Phase 1 aur Phase 2 complete ho chuke hain — detail [PHASE_1_NOTES.md](PHASE_1_NOTES.md) aur
+[PHASE_2_NOTES.md](PHASE_2_NOTES.md) me. Phase 3 (video signaling + canvas sync + HTTP 206
+streaming) chal raha hai.

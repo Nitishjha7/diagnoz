@@ -14,8 +14,13 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
   `diagnostic_sessions`, `service_dispatches`), PostGIS + Alembic migration (GIST indexes),
   JWT/RBAC auth (register/login/me), `docker-compose.yml` verified end-to-end (db, redis,
   minio, backend, worker all boot + migrate clean). Detail: [PHASE_1_NOTES.md](PHASE_1_NOTES.md)
-- ⬜ Empty placeholder files (Phase 2+): `audio_triage.py`, `canvas_sync.py`, `streaming.py`,
-  `dispatch.py`, `media_transcode.py`
+- ✅ **Phase 2 complete** — `/ws/audio/triage` (binary PCM → STT stub → keyword-based LLM
+  triage extractor → synthetic TTS stream), sessions API, offline-first service layer
+  (`services/whisper_client.py`, `llm_triage.py`, `tts_client.py`) so the pipeline runs with
+  zero external API keys. Verified with a real WebSocket client end-to-end, including DB
+  persistence. Detail: [PHASE_2_NOTES.md](PHASE_2_NOTES.md)
+- ⬜ Empty placeholder files (Phase 3+): `canvas_sync.py`, `streaming.py`, `dispatch.py`,
+  `media_transcode.py`
 - ❌ Frontend (React code not started; `frontend/Dockerfile` empty, service commented out
   of `docker-compose.yml` until Frontend phase)
 

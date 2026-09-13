@@ -19,5 +19,11 @@ class Settings(BaseSettings):
     PLATFORM_COMMISSION_RATE: float = 0.15
     TDS_RATE: float = 0.01
 
+    WHISPER_MODEL: str = "base"
+    LLM_API_KEY: str = ""
+    LLM_MODEL: str = ""
+    TTS_API_KEY: str = ""
+    TTS_VOICE: str = ""
+
 
 settings = Settings()
