@@ -9,12 +9,15 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
 ## Current Status (jo ban chuka hai)
 
 - ✅ Repo scaffold — `backend/`, `frontend/`, `docker-compose.yml`, `.gitignore`
-- ✅ Empty placeholder files: `audio_triage.py`, `canvas_sync.py`, `streaming.py`,
-  `dispatch.py`, `celery_app.py`, `media_transcode.py`, `main.py`
 - ✅ Docs: README, TECHNICAL_SPEC, SETUP, ROADMAP, CODE_NOTES, INTERVIEW_NOTES
-- ❌ Koi actual implementation nahi (sab files khaali hai)
-- ❌ DB models / migrations
-- ❌ Frontend
+- ✅ **Phase 1 complete** — SQLAlchemy models (`users`, `technician_profiles`,
+  `diagnostic_sessions`, `service_dispatches`), PostGIS + Alembic migration (GIST indexes),
+  JWT/RBAC auth (register/login/me), `docker-compose.yml` verified end-to-end (db, redis,
+  minio, backend, worker all boot + migrate clean). Detail: [PHASE_1_NOTES.md](PHASE_1_NOTES.md)
+- ⬜ Empty placeholder files (Phase 2+): `audio_triage.py`, `canvas_sync.py`, `streaming.py`,
+  `dispatch.py`, `media_transcode.py`
+- ❌ Frontend (React code not started; `frontend/Dockerfile` empty, service commented out
+  of `docker-compose.yml` until Frontend phase)
 
 ---
 

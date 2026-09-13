@@ -2,34 +2,35 @@
 
 Ye file har file / dependency ka **kaam aur reason** track karti hai, taaki baad me (ya
 interview me) yaad rahe ki har cheez kyun li gayi. Jaise-jaise code likha jayega, isko
-update karte rahenge. Abhi zyada files khaali hai — ye "planned intent" note hai.
+update karte rahenge.
+
+**Status:** Phase 1 (foundation) implement ho chuka hai aur `docker compose` me verify kiya
+gaya hai. Detail neeche [PHASE_1_NOTES.md](PHASE_1_NOTES.md) me. Phase 2 se aage ke liye
+neeche wale sections abhi bhi "planned intent" hain.
 
 ---
 
-## backend/requirements.txt (planned)
+## backend/requirements.txt
 
 | Package | Kya kaam karta hai | Kyun liya |
 |---|---|---|
 | `fastapi` | ASGI web framework — REST + WebSocket endpoints | Async-native, WebSocket first-class support, auto `/docs`. Poore project ka gateway isi pe hai |
 | `uvicorn[standard]` | ASGI server jo FastAPI app run karta hai | FastAPI khud server nahi hai. `[standard]` me `websockets` + `httptools` aate hain jo WS/HTTP perf ke liye chahiye |
-| `websockets` | Low-level WS protocol implementation | Uvicorn isi ke through binary frames handle karta hai (audio PCM chunks) |
-| `sqlalchemy` | ORM / SQL toolkit | Postgres models + query execution. Async engine use karenge (`asyncpg`) |
-| `asyncpg` | Async PostgreSQL driver | FastAPI async hai — sync `psycopg2` event loop block kar deta. `asyncpg` fast + non-blocking |
+| `sqlalchemy` | ORM / SQL toolkit | Postgres models + query execution |
+| `psycopg2-binary` | Sync PostgreSQL driver | Phase 1 me sync SQLAlchemy engine use kiya (simplicity + Alembic ka sync support seedha kaam karta hai). Async `asyncpg` baad me perf-critical path pe consider karenge |
 | `geoalchemy2` | SQLAlchemy ke liye PostGIS spatial types | `GEOMETRY(Point, 4326)` columns ko Python me map karne ke liye. Raw SQL likhe bina spatial queries |
 | `alembic` | DB migration tool | Schema versioning — `postgis` extension enable, GIST index create sab migration me |
 | `redis` | Redis client (async: `redis.asyncio`) | Canvas sync Pub/Sub, WebRTC signaling relay, dispatch distributed lock, Celery broker |
 | `celery` | Distributed task queue | Long-running kaam (FFmpeg transcode, PDF gen, payout batch) request cycle se bahar |
 | `pydantic` / `pydantic-settings` | Validation + typed config | Request/response models; `.env` se typed settings load |
+| `email-validator` | `EmailStr` validation | Pydantic `EmailStr` ko internally isi ki zaroorat hai — na ho to import error |
 | `python-jose[cryptography]` | JWT encode/decode | Auth token issuance + verification |
 | `passlib[bcrypt]` | Password + OTP hashing | `hashed_password`, `start_otp_hash`, `end_otp_hash` — kabhi plain store nahi |
-| `python-multipart` | Form/file upload parsing | Video recording upload endpoint ke liye |
-| `weasyprint` | HTML → PDF | Inspection report / invoice generation (Celery task) |
-| `boto3` | S3 client | MinIO / S3 pe HLS segments, PDF, snapshots upload |
-| `openai-whisper` / `faster-whisper` | Streaming STT | Audio chunk → transcript. `faster-whisper` (CTranslate2) low-latency ke liye better |
-| `httpx` | Async HTTP client | LLM / TTS API calls (async, event loop friendly) |
+| `bcrypt==4.0.1` | Passlib ka bcrypt backend, pinned | `bcrypt` 5.x me passlib 1.7.4 ke saath incompatibility hai (`password cannot be longer than 72 bytes` error backend detection ke waqt hi aata hai) — 4.0.1 pe pin karna padha |
+| `python-multipart` | Form/file upload parsing | OAuth2 password form (`/auth/login`) aur video upload endpoint ke liye |
 
-FFmpeg khud OS package hai (`apt install ffmpeg`) — pip package nahi. Dockerfile me install
-hoga.
+FFmpeg, WeasyPrint, boto3, faster-whisper, httpx — ye Phase 2/5 me add honge jab unki
+zaroorat aayegi (abhi rakhna scope-creep hota).
 
 ---
 
@@ -37,11 +38,106 @@ hoga.
 
 FastAPI app ka entrypoint — HTTP + WebSocket routers wire karta hai, koi business logic nahi.
 
-- `include_router()` se `api/v1/router.py` (REST) aur `websockets/*` (WS) mount honge.
-- `@app.on_event("startup")` — DB engine warm-up, Redis connection pool init.
-- CORS middleware — abhi dev me `allow_origins=["*"]`, production me frontend domain tak
-  restrict. Note kar liya.
-- `/health` — Docker healthcheck ping.
+- `include_router(api_router, prefix="/api/v1")` — saare REST routes yahin se mount.
+- `/health` — Docker healthcheck ping, `docker-compose.yml` isko poll nahi karta abhi (backend
+  ka apna healthcheck nahi laga, sirf DB ka `depends_on: condition: service_healthy` hai) —
+  manual curl se verify kiya.
+- WebSocket routers (`audio_triage`, `canvas_sync`, `webrtc_signaling`) Phase 2/3 me yahan
+  `include_router` honge — abhi wire nahi kiye kyunki unki file khaali hai.
+- CORS middleware abhi nahi laga — frontend banne ke baad (Phase 4) add karenge jab actual
+  origin pata chalega.
+
+---
+
+## backend/app/core/ (Phase 1 — naya)
+
+Config, DB engine, aur security ka central jagah — TECHNICAL_SPEC ke "Target File Structure"
+me `app/core/{config,database,security}.py` planned tha, wahi bana.
+
+- **`config.py`** — `pydantic-settings.BaseSettings` se `.env` typed load hota hai
+  (`DATABASE_URL`, `JWT_SECRET_KEY`, dispatch economics vars, sab yahin). Poore app me kahin
+  bhi `os.getenv` nahi likha — sirf `from app.core.config import settings`.
+- **`database.py`** — sync SQLAlchemy `engine` + `SessionLocal` + `Base` (naya
+  `DeclarativeBase` style, SQLAlchemy 2.0). `get_db()` generator FastAPI `Depends` ke liye —
+  request khatam hote hi session close.
+- **`security.py`** — password hash/verify (`passlib.bcrypt`) + JWT create/decode
+  (`python-jose`). OTP hashing bhi isi `hash_password`/`verify_password` se hoga (Phase 4) —
+  alag function nahi banaya, same primitive kaafi hai.
+- **`deps.py`** — `get_current_user` (token decode → DB se user fetch → `is_active` check) aur
+  `require_roles(*roles)` factory jo RBAC guard deta hai. Endpoint pe
+  `Depends(require_roles("ADMIN"))` laga do to sirf ADMIN role hi access kar payega — 403
+  warna.
+
+**Kyun `require_roles` factory pattern:** ek hi dependency function se saare role-combinations
+cover ho jaate hain (`require_roles("TECHNICIAN", "ADMIN")` bhi likh sakte ho), alag-alag
+`is_admin`/`is_technician` dependency nahi likhni padi.
+
+---
+
+## backend/app/models/ (Phase 1 — naya)
+
+SQLAlchemy 2.0 `Mapped[]` style models, TECHNICAL_SPEC ke SQL schema (section 4) ka 1:1
+Python mapping:
+
+- **`user.py`** → `users` table. `role` plain `String(20)` + DB-level `CHECK` constraint
+  (migration me), Python side `UserRole` enum sirf documentation/reference ke liye hai,
+  column type khud enum nahi banaya (Postgres native enum migration me pain deta — string +
+  CHECK simpler aur Alembic-friendly).
+- **`technician.py`** → `technician_profiles`. `current_location` = `geoalchemy2.Geometry
+  (geometry_type="POINT", srid=4326)` — yahi column Python object se PostGIS `GEOMETRY(Point,
+  4326)` ban jaata hai.
+- **`session.py`** → `diagnostic_sessions`. `ai_structured_summary` = `JSONB` — LLM ka
+  structured triage output yahin store hoga.
+- **`dispatch.py`** → `service_dispatches`. `current_location` jaisa hi geometry column
+  `customer_location` pe.
+
+**Kyun alag file per table, ek models.py nahi:** TECHNICAL_SPEC file structure me explicitly
+`models/{user,session,dispatch}.py` diya tha — aur 4 tables ek file me daalna already
+mushkil-to-navigate ho jaata.
+
+---
+
+## backend/app/schemas/user.py + api/v1/endpoints/auth.py (Phase 1 — naya)
+
+Auth ka poora flow:
+
+- **`UserRegister`** — Pydantic input model, `role` field `pattern="^(CUSTOMER|TECHNICIAN|
+  ADMIN)$"` se hi restrict, DB tak galat role pahunchta hi nahi.
+- **`POST /api/v1/auth/register`** — email/phone duplicate check → `hash_password` →
+  `User` row insert → `UserOut` return (hashed_password kabhi response me nahi jaata,
+  `UserOut` schema me wo field hi nahi hai).
+- **`POST /api/v1/auth/login`** — `OAuth2PasswordRequestForm` (standard OAuth2 form:
+  `username` + `password`) use kiya, taaki Swagger UI ka "Authorize" button seedha kaam
+  kare aur ye FastAPI ka documented convention follow kare. `username` field me email jaata
+  hai.
+- **`GET /api/v1/auth/me`** — `Depends(get_current_user)` se protected, JWT/RBAC ka
+  end-to-end proof — bina token 401, valid token pe current user.
+
+`docker compose` me manually test kiya: register → login → token se `/me` call → 200; bina
+token `/me` → 401. Sab pass.
+
+---
+
+## backend/alembic/ (Phase 1 — naya)
+
+- **`env.py`** — `settings.DATABASE_URL` se `sqlalchemy.url` runtime pe set hota hai (alembic.ini
+  me khaali chhoda), aur `app.models` se saare models import karke `Base.metadata` ko
+  `target_metadata` diya — taaki `--autogenerate` future migrations me kaam kare.
+- **`versions/0001_initial_schema.py`** — hand-written (autogenerate ke bajaye, kyunki local
+  machine pe Python/venv setup nahi tha is session me) — lekin models se schema exactly match
+  karta hai:
+  - `CREATE EXTENSION postgis` + `pgcrypto`
+  - 4 tables (`users`, `technician_profiles`, `diagnostic_sessions`, `service_dispatches`)
+  - `CHECK` constraints role/status enums ke liye
+  - `idx_technician_location` aur `idx_dispatch_location` — dono `GIST` index geometry
+    columns pe (spatial KNN query Phase 4 me isi index se fast hogi)
+- `docker-compose.yml` ka `backend` service startup pe `alembic upgrade head` khud chalata
+  hai (`command: sh -c "alembic upgrade head && uvicorn ..."`) — matlab `docker compose up`
+  ek hi command se DB migrate + app boot dono kar deta hai, alag se migration step yaad
+  nahi rakhna padta.
+
+**Verify kiya:** `docker exec` se `psql \dt` aur `\di` chala ke confirm kiya ki saare 4 table
++ dono GIST index ban chuke hain, aur `postgis_version()` 3.4 return kar raha hai.
 
 ---
 
@@ -173,16 +269,27 @@ Technician `wallet_balance` update, ledger entry.
 
 ---
 
-## docker-compose.yml (planned services)
+## docker-compose.yml
 
-| Service | Image | Kaam |
-|---|---|---|
-| `db` | `postgis/postgis:16-3.4` | Relational + spatial store |
-| `redis` | `redis:7-alpine` | Pub/sub, locks, Celery broker |
-| `minio` | `minio/minio` | S3-compatible object storage |
-| `backend` | build `./backend` | FastAPI gateway |
-| `worker` | build `./backend` | `celery -A workers.celery_app worker` |
-| `frontend` | build `./frontend` | React build served by Nginx (`/api/` + `/ws/` proxy) |
+| Service | Image | Kaam | Host port |
+|---|---|---|---|
+| `db` | `postgis/postgis:16-3.4` | Relational + spatial store | `5434` (container: `5432`) |
+| `redis` | `redis:7-alpine` | Pub/sub, locks, Celery broker | `6381` (container: `6379`) |
+| `minio` | `minio/minio` | S3-compatible object storage | `9002`/`9003` |
+| `backend` | build `./backend` | FastAPI gateway, startup pe `alembic upgrade head` | `8000` |
+| `worker` | build `./backend` | `celery -A workers.celery_app worker` | — |
+| `frontend` | build `./frontend` | (commented out) | — |
+
+**Host ports 5432/6379 default se hata ke 5434/6381/9002/9003 kiye** — is machine pe pehle se
+ek doosra project (`webguard-*`) `5432` aur `6379` occupy kiye baitha tha; container-to-container
+communication `db:5432` / `redis:6379` (internal Docker network names) unchanged hai, sirf host
+se access karne ka port badla hai. `.env` / app code me kahin bhi host port hardcode nahi —
+sab internal service name se baat karte hain.
+
+**`frontend` service abhi comment-out hai** — `frontend/Dockerfile` khaali hai aur koi React
+code nahi bana. Jab Frontend phase (BUILD_PLAN session 4) aayega, tab uncomment karke real
+Dockerfile ke saath enable karenge. Isse pehle enable karte to `docker compose up` yahi pe
+fail ho jaata.
 
 ---
 
