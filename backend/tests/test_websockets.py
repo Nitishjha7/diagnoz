@@ -26,10 +26,17 @@ def test_audio_triage_full_pipeline(client, customer):
         assert payload["appliance_type"] == "AC"
         assert payload["urgency"] in ("LOW", "MEDIUM", "HIGH")
 
-        # TTS audio packets stream back as binary frames
-        audio_packet = ws.receive_bytes()
-        assert isinstance(audio_packet, bytes)
-        assert len(audio_packet) > 0
+        # TTS audio packets stream back as binary frames - drain all of them before the
+        # `with` block closes the socket, otherwise the server is still mid-send when the
+        # test client tears down the connection.
+        audio_packets = []
+        while len(audio_packets) < 10:
+            packet = ws.receive_bytes()
+            audio_packets.append(packet)
+            if len(packet) < 6400:  # a short final chunk signals the stream is winding down
+                break
+        assert len(audio_packets) > 0
+        assert all(isinstance(p, bytes) and len(p) > 0 for p in audio_packets)
 
 
 def test_audio_triage_persists_transcript_and_diagnosis_to_session(client, customer):
