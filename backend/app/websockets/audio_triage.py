@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 
 from app.core.database import SessionLocal
 from app.models.session import DiagnosticSession
@@ -65,3 +66,9 @@ async def audio_triage_websocket_endpoint(websocket: WebSocket, session_id: str)
 
     except WebSocketDisconnect:
         pass
+    except RuntimeError:
+        # Starlette's receive() raises a plain RuntimeError (not WebSocketDisconnect) if the
+        # client already tore down the connection - equivalent to a disconnect. Re-raise
+        # anything else so a genuine bug elsewhere in the handler isn't silently swallowed.
+        if websocket.client_state != WebSocketState.DISCONNECTED:
+            raise
