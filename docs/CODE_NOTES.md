@@ -467,4 +467,35 @@ dispatch KNN precision 100% (4/4). Detail + 2 real bugs jo isi process me pakde 
 
 ---
 
+## backend/tests/ (naya)
+
+Integration test suite — real `db`/`redis` containers ke against, `fastapi.testclient.TestClient`
+se, mocks nahi. Same philosophy jo poore project me follow ki hai.
+
+- **`conftest.py`** — fixtures: `client`, `register_user`/`login`/`auth_headers` (factory
+  fixtures), `customer`/`technician` (ready-to-use logged-in users), `available_technician`
+  (dispatch tests ke liye — baaki sab technicians temporarily unavailable karke deterministic
+  KNN match guarantee karta hai, `eval/run_eval.py` jaisa hi isolation).
+- **`test_auth.py`, `test_sessions.py`, `test_technicians.py`** — register/login/RBAC/404
+  cases.
+- **`test_dispatch.py`** — poora dual-OTP lifecycle, KNN match, no-match 404, concurrent-lock
+  409, wrong-OTP 400, cross-technician 403, out-of-order-transition 409.
+- **`test_streaming.py`** — HTTP 206/200/416, auth requirement.
+- **`test_websockets.py`** — audio triage poora pipeline (transcript → diagnosis → TTS → DB
+  persistence), canvas sync relay, WebRTC signaling relay.
+
+**34 tests, sab pass.** Run: `docker compose exec backend pytest tests/ -v`.
+
+**2 real bugs jo test likhte/chalate waqt pakde gaye:**
+1. `/ws/audio/triage` — client disconnect pe `RuntimeError` unhandled tha (`WebSocketDisconnect`
+   hi catch ho raha tha). Fix kiya `websocket.client_state` check ke saath.
+2. Test suite ka apna fixture-aliasing bug — `available_technician` aur `technician` dono
+   fixtures same test me maangne se pytest same cached instance de raha tha ("different
+   technician" wala test asal me same technician use kar raha tha). `register_user` se fresh
+   technician banake fix kiya.
+
+Detail: [PHASE_TESTS_NOTES.md](PHASE_TESTS_NOTES.md)
+
+---
+
 ## Aage jo bhi file banegi, uska explanation yahin niche add hoga.

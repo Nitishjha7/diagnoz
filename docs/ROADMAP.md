@@ -44,8 +44,14 @@ aur "defendable" lagengi — real-time systems, media infra, geospatial.
   accuracy, 88.9% urgency accuracy, 100% dispatch KNN precision. Caught and fixed a real
   substring-matching bug in `llm_triage.py` along the way. Numbers are in
   `docs/INTERVIEW_NOTES.md` section 3a. Detail: [PHASE_EVAL_NOTES.md](PHASE_EVAL_NOTES.md)
-- **Project is functionally complete: backend (Phase 1–5), frontend, and evaluation harness
-  are all implemented and verified against the real running system.**
+- ✅ **Integration test suite complete** — 34 tests in `backend/tests/`, run against the real
+  `db`/`redis` containers via `TestClient` (no mocks). Covers auth/RBAC, sessions, technician
+  profiles, the full dual-OTP dispatch lifecycle, HTTP 206 streaming, and all 3 WebSocket
+  endpoints. Caught and fixed a real bug (`/ws/audio/triage` unhandled `RuntimeError` on
+  client disconnect). Detail: [PHASE_TESTS_NOTES.md](PHASE_TESTS_NOTES.md)
+- **Project is functionally complete: backend (Phase 1–5), frontend, evaluation harness, and
+  an integration test suite are all implemented and verified against the real running
+  system.**
 
 ---
 

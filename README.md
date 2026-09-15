@@ -13,6 +13,7 @@ visits that are actually a tripped breaker, a loose connector, or a wrong settin
 [![React](https://img.shields.io/badge/React-19-0ea5e9)](frontend/)
 [![triage accuracy](https://img.shields.io/badge/triage%20accuracy-100%25%20appliance%20%C2%B7%2088.9%25%20urgency-3fb950)](#measured-results)
 [![dispatch precision](https://img.shields.io/badge/dispatch%20KNN%20precision-100%25-3fb950)](#measured-results)
+[![tests](https://img.shields.io/badge/tests-34%20passing-3fb950)](backend/tests/)
 
 </div>
 
@@ -279,6 +280,21 @@ stack, then `npm run dev` in `frontend/` for a hot-reloading UI.
 
 ---
 
+## Testing
+
+```bash
+docker compose up -d db redis backend
+docker compose exec backend pytest tests/ -v
+```
+
+34 integration tests, run against the real `db`/`redis` containers via
+`fastapi.testclient.TestClient` — no mocks, same philosophy as everything else in this
+project. Covers auth/RBAC, sessions, technician profiles, the full dual-OTP dispatch
+lifecycle (KNN match, concurrent-lock 409, wrong-OTP 400, cross-technician 403), HTTP 206
+streaming, and all three WebSocket endpoints (audio triage end-to-end including DB
+persistence, canvas sync relay, WebRTC signaling relay). Caught and fixed a real bug along
+the way — see [docs/PHASE_TESTS_NOTES.md](docs/PHASE_TESTS_NOTES.md).
+
 ## Evaluation
 
 ```bash
@@ -339,6 +355,7 @@ system, and the real bugs found along the way — including the ones that turned
 | [docs/PHASE_1_NOTES.md](docs/PHASE_1_NOTES.md) … [PHASE_5_NOTES.md](docs/PHASE_5_NOTES.md) | Per-phase build notes |
 | [docs/PHASE_FRONTEND_NOTES.md](docs/PHASE_FRONTEND_NOTES.md) | Frontend build + real-browser verification |
 | [docs/PHASE_EVAL_NOTES.md](docs/PHASE_EVAL_NOTES.md) | Evaluation harness methodology and results |
+| [docs/PHASE_TESTS_NOTES.md](docs/PHASE_TESTS_NOTES.md) | Integration test suite — coverage, isolation approach, bugs caught |
 | [docs/INTERVIEW_NOTES.md](docs/INTERVIEW_NOTES.md) | Pitch, ROI numbers, trade-offs, measured results, anticipated Q&A |
 | [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Step-by-step live demo walkthrough — exact clicks, what to say, fallback plan |
 
