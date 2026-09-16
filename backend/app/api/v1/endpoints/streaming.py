@@ -35,7 +35,7 @@ async def stream_reference_video(
 ):
     file_path = VIDEO_STORAGE_PATH / f"{video_id}.mp4"
     if not file_path.exists():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Video file not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video file not found")
 
     file_size = os.path.getsize(file_path)
     if range is None:
@@ -52,8 +52,8 @@ async def stream_reference_video(
 
     if start >= file_size or end >= file_size:
         raise HTTPException(
-            status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
-            "Requested Range Not Satisfiable",
+            status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
+            detail="Requested Range Not Satisfiable",
             headers={"Content-Range": f"bytes */{file_size}"},
         )
 

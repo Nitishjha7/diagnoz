@@ -49,7 +49,6 @@ export default function AudioTriageWidget({ sessionId, onDiagnosis }) {
     <div className="assistant-panel">
       <div className="assistant-tabs">
         <button className="assistant-tab active">AI Assistant</button>
-        <button className="assistant-tab">Session Details</button>
       </div>
 
       <div className="chat-log">

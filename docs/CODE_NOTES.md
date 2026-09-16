@@ -33,9 +33,12 @@ aur [PHASE_EVAL_NOTES.md](PHASE_EVAL_NOTES.md) me. Project functionally complete
 | `boto3` | S3 client | MinIO pe HLS segments + PDF reports upload karne ke liye |
 | `weasyprint` | HTML → PDF | Inspection report generation (Celery task) |
 | `pydyf==0.10.0` | WeasyPrint ki PDF-writing dependency, pinned | Latest `pydyf` (0.12.1) weasyprint 62.3 ke saath breaking-incompatible hai — pin zaroori tha |
+| `pytest` | Test runner | `backend/tests/` ki 34 integration tests isi se chalti hain |
+| `httpx` | Async HTTP client | `fastapi.testclient.TestClient` ka transitive dependency, tests ke liye explicit pin |
 
-FFmpeg, WeasyPrint, boto3, faster-whisper, httpx — ye Phase 2/5 me add honge jab unki
-zaroorat aayegi (abhi rakhna scope-creep hota).
+FFmpeg khud OS package hai (`apt install ffmpeg`, Dockerfile me) — pip package nahi.
+`faster-whisper` aur real LLM/TTS SDK abhi tak add nahi hue — jab tak provider select nahi
+hota, `services/*` ka offline fallback hi use hota hai (Phase 2 notes dekh).
 
 ---
 
@@ -43,14 +46,16 @@ zaroorat aayegi (abhi rakhna scope-creep hota).
 
 FastAPI app ka entrypoint — HTTP + WebSocket routers wire karta hai, koi business logic nahi.
 
+- `CORSMiddleware` (wildcard `allow_origins=["*"]`) — dev-friendly, taaki Vite dev server
+  (`:5173`) aur backend (`:8000`) alag origins se bhi seedha baat kar sakein. Production me
+  deployed frontend domain tak restrict karna hoga (code comment me flagged hai).
 - `include_router(api_router, prefix="/api/v1")` — saare REST routes yahin se mount.
+- `include_router(audio_triage_router)`, `canvas_sync_router`, `webrtc_signaling_router` —
+  teeno WebSocket routers bhi yahin wire hote hain (koi prefix nahi, unki apni full path
+  `/ws/...` already route decorator me hai).
 - `/health` — Docker healthcheck ping, `docker-compose.yml` isko poll nahi karta abhi (backend
   ka apna healthcheck nahi laga, sirf DB ka `depends_on: condition: service_healthy` hai) —
   manual curl se verify kiya.
-- WebSocket routers (`audio_triage`, `canvas_sync`, `webrtc_signaling`) Phase 2/3 me yahan
-  `include_router` honge — abhi wire nahi kiye kyunki unki file khaali hai.
-- CORS middleware abhi nahi laga — frontend banne ke baad (Phase 4) add karenge jab actual
-  origin pata chalega.
 
 ---
 
@@ -66,8 +71,9 @@ me `app/core/{config,database,security}.py` planned tha, wahi bana.
   `DeclarativeBase` style, SQLAlchemy 2.0). `get_db()` generator FastAPI `Depends` ke liye —
   request khatam hote hi session close.
 - **`security.py`** — password hash/verify (`passlib.bcrypt`) + JWT create/decode
-  (`python-jose`). OTP hashing bhi isi `hash_password`/`verify_password` se hoga (Phase 4) —
-  alag function nahi banaya, same primitive kaafi hai.
+  (`python-jose`). OTP ke liye dedicated `generate_otp()` (`secrets.randbelow`, 6-digit),
+  `hash_otp()`/`verify_otp()` (Phase 4) — same bcrypt primitive reuse karte hain internally,
+  bas naming clear rakhne ke liye password wale functions se alag rakha.
 - **`deps.py`** — `get_current_user` (token decode → DB se user fetch → `is_active` check) aur
   `require_roles(*roles)` factory jo RBAC guard deta hai. Endpoint pe
   `Depends(require_roles("ADMIN"))` laga do to sirf ADMIN role hi access kar payega — 403
@@ -427,7 +433,7 @@ earnings=841.5), task run kiya, `wallet_balance` 0 → 841.5 confirm kiya, dobar
 | `backend` | build `./backend` | FastAPI gateway, startup pe `alembic upgrade head` | `8000` |
 | `worker` | build `./backend` | `celery -A workers.celery_app worker` | — |
 | `beat` | build `./backend` | `celery -A workers.celery_app beat` (weekly payout scheduler) | — |
-| `frontend` | build `./frontend` | (commented out) | — |
+| `frontend` | build `./frontend` | React (Vite build) served via Nginx, `/api/` + `/ws/` proxy_pass to `backend` | `5173` (container: `80`) |
 
 **`minio/minio` Docker Hub se hata diya gaya hai** (MinIO ne publishing model badla) — ab
 `quay.io/minio/minio:latest` use karte hain.
@@ -438,10 +444,11 @@ communication `db:5432` / `redis:6379` (internal Docker network names) unchanged
 se access karne ka port badla hai. `.env` / app code me kahin bhi host port hardcode nahi —
 sab internal service name se baat karte hain.
 
-**`frontend` service abhi comment-out hai** — `frontend/Dockerfile` khaali hai aur koi React
-code nahi bana. Jab Frontend phase (BUILD_PLAN session 4) aayega, tab uncomment karke real
-Dockerfile ke saath enable karenge. Isse pehle enable karte to `docker compose up` yahi pe
-fail ho jaata.
+**`frontend` service** — React 19 + Vite app, multi-stage Dockerfile (`node:22-alpine` build
+→ `nginx:1.27-alpine` serve). `nginx.conf` SPA fallback (`try_files ... /index.html`) aur
+`/api/`/`/ws/` proxy rules deta hai backend container tak — isliye production build me
+`VITE_API_BASE_URL` set nahi karna padta, relative paths hi kaam karte hain. Detail:
+[PHASE_FRONTEND_NOTES.md](PHASE_FRONTEND_NOTES.md).
 
 ---
 

@@ -1,9 +1,14 @@
 venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 node_modules/
 dist/
 .env
 *.db
 *.log
 celerybeat-schedule
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

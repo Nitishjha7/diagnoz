@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 
+from fastapi import APIRouter, Depends, HTTPException, status
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import settings
 from app.core.database import get_db

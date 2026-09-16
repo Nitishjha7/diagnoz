@@ -4,10 +4,6 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class DiagnosticSessionCreate(BaseModel):
-    pass
-
-
 class DiagnosticSessionOut(BaseModel):
     id: uuid.UUID
     customer_id: uuid.UUID

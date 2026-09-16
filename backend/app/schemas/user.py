@@ -12,11 +12,6 @@ class UserRegister(BaseModel):
     role: str = Field(pattern="^(CUSTOMER|TECHNICIAN|ADMIN)$")
 
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-
 class UserOut(BaseModel):
     id: uuid.UUID
     full_name: str
