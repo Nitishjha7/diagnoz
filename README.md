@@ -3,7 +3,7 @@
 # DiagnoZ
 
 **See it. Solve it. Sooner.** Real-time video tele-diagnostic, voice AI triage & field
-service dispatch platform for appliance repair — built to cut the 35–45% of technician
+service dispatch platform for appliance repair - built to cut the 35–45% of technician
 visits that are actually a tripped breaker, a loose connector, or a wrong setting.
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-ASGI-009688)](backend/app/main.py)
@@ -18,11 +18,11 @@ visits that are actually a tripped breaker, a loose connector, or a wrong settin
 </div>
 
 <p align="center">
-  <img src="docs/images/live-diagnostic-session.png" alt="Live diagnostic session — video, AI assistant, triage summary, dispatch and impact" width="900">
+  <img src="docs/images/live-diagnostic-session.png" alt="Live diagnostic session - video, AI assistant, triage summary, dispatch and impact" width="900">
 </p>
 
 <p align="center">
-  <sub>Live diagnostic session — voice/video triage, real-time canvas annotation, and the AI assistant chat all in one view.</sub>
+  <sub>Live diagnostic session - voice/video triage, real-time canvas annotation, and the AI assistant chat all in one view.</sub>
 </p>
 
 <p align="center">
@@ -40,10 +40,10 @@ visits that are actually a tripped breaker, a loose connector, or a wrong settin
 |---|---|
 | **Backend** | FastAPI (ASGI), Python 3.12, Pydantic v2, SQLAlchemy 2.0, Alembic |
 | **Data** | PostgreSQL 16 + PostGIS (spatial KNN dispatch), Redis 7 (locks, pub/sub, broker) |
-| **Real-time** | Binary WebSockets — audio triage, WebRTC signaling, canvas annotation sync |
-| **Async workers** | Celery + Celery Beat — HLS transcode, PDF invoices, weekly payouts |
+| **Real-time** | Binary WebSockets - audio triage, WebRTC signaling, canvas annotation sync |
+| **Async workers** | Celery + Celery Beat - HLS transcode, PDF invoices, weekly payouts |
 | **Frontend** | React 19, Vite, served via Nginx in Docker |
-| **Object storage** | MinIO / S3 — HLS segments, PDF invoices |
+| **Object storage** | MinIO / S3 - HLS segments, PDF invoices |
 | **Infra** | Docker Compose (7 services) |
 | **Evaluated** | 18 triage + 4 dispatch scenarios run against the live system, not mocks |
 
@@ -55,7 +55,7 @@ visits that are actually a tripped breaker, a loose connector, or a wrong settin
 flowchart LR
     B["React 19 + Vite<br/>Web Audio API · Canvas · WebRTC"]
 
-    subgraph API["FastAPI — async ASGI gateway"]
+    subgraph API["FastAPI - async ASGI gateway"]
         R["REST routes<br/>auth · dispatch · streaming"]
         WA["/ws/audio/triage"]
         WV["/ws/video/signal"]
@@ -97,31 +97,31 @@ flowchart LR
 
 ## How It Works
 
-1. **Voice triage** — customer taps a mic and describes the fault in natural language. The
-   browser streams raw 16kHz PCM binary chunks over `/ws/audio/triage` — no base64, no
+1. **Voice triage** - customer taps a mic and describes the fault in natural language. The
+   browser streams raw 16kHz PCM binary chunks over `/ws/audio/triage` - no base64, no
    per-chunk string encode/decode. FastAPI runs streaming STT → an LLM with function-calling
    schemas (extracts `appliance_type`, `suspected_issue`, `urgency`) → streaming TTS, replying
    with spoken diagnostic feedback in under 500ms. Every stage has a deterministic offline
-   fallback, so the full pipeline runs with **zero external API keys** — real providers plug
+   fallback, so the full pipeline runs with **zero external API keys** - real providers plug
    into the same interface without changing the contract.
-2. **Video diagnostic room** — customer points their phone camera at the appliance; the
+2. **Video diagnostic room** - customer points their phone camera at the appliance; the
    remote engineer draws arrows/circles on the live video. FastAPI brokers the WebRTC
-   SDP/ICE handshake — media itself stays peer-to-peer; annotation coordinates are normalized
+   SDP/ICE handshake - media itself stays peer-to-peer; annotation coordinates are normalized
    to `[0.0, 1.0]` and broadcast over Redis Pub/Sub so they land correctly on any screen
    resolution.
-3. **Reference video streaming** — troubleshooting guides stream via HTTP 206 Partial Content
+3. **Reference video streaming** - troubleshooting guides stream via HTTP 206 Partial Content
    byte-range responses (`file.seek()`, never a full read) so a multi-GB file is never loaded
    into RAM; completed session recordings are transcoded to multi-bitrate HLS
    (1080p/720p/480p) by Celery workers.
-4. **Geospatial dispatch** — if the issue can't be fixed remotely, a PostGIS K-Nearest-
+4. **Geospatial dispatch** - if the issue can't be fixed remotely, a PostGIS K-Nearest-
    Neighbor query (`<->` operator, GIST index, EPSG:4326) finds the closest **available**
-   technician within 5km — `O(log N)`, not a full table scan. A Redis distributed lock
+   technician within 5km - `O(log N)`, not a full table scan. A Redis distributed lock
    (`SET NX EX`) covers the race window between match and commit.
-5. **Dual-OTP lifecycle** — `PENDING → ACCEPTED → (start_otp) → IN_PROGRESS → (end_otp) →
+5. **Dual-OTP lifecycle** - `PENDING → ACCEPTED → (start_otp) → IN_PROGRESS → (end_otp) →
    COMPLETED`, cryptographically verified state transitions that prevent contractor
    start/complete fraud. OTPs are bcrypt-hashed; only the one-time API response ever carries
    the plaintext code.
-6. **Settlement & reporting** — on completion, Celery compiles the inspection PDF
+6. **Settlement & reporting** - on completion, Celery compiles the inspection PDF
    (WeasyPrint) and books the ledger split: 15% platform commission, 85% technician payout
    minus 1% TDS. A weekly Celery Beat job settles payouts into technician wallets,
    idempotently.
@@ -161,16 +161,16 @@ sequenceDiagram
 
 Two independent guards, not one: the Redis lock only covers the *assignment* race; the
 persistent `is_available` flag is what actually keeps a busy technician out of future KNN
-matches. Verified end-to-end, including the concurrent-request 409 and the wrong-OTP 400 —
+matches. Verified end-to-end, including the concurrent-request 409 and the wrong-OTP 400 -
 see the dispatch flow in [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md).
 
 ---
 
 ## Measured Results
 
-Not hand-waved — [`eval/run_eval.py`](eval/run_eval.py) runs 18 labeled triage transcripts and
+[`eval/run_eval.py`](eval/run_eval.py) runs 18 labeled triage transcripts and
 4 labeled dispatch scenarios against the **real running system** (real DB, real PostGIS
-queries, the real triage function) — no mocks.
+queries, the real triage function) - no mocks.
 
 | Metric | Result |
 |---|---|
@@ -190,7 +190,7 @@ queries, the real triage function) — no mocks.
    precision. After isolating each scenario immediately after its assertion: **100%**.
 
 The 2 remaining urgency misses are left as documented limitations of the offline keyword
-fallback (no negation handling — *"nothing urgent **though**"* still matches `urgent`; no
+fallback (no negation handling - *"nothing urgent **though**"* still matches `urgent`; no
 non-English keywords), not silently special-cased. Scenarios and the runner are in [eval/](eval/).
 
 ---
@@ -203,7 +203,7 @@ non-English keywords), not silently special-cased. Scenarios and the runner are 
 </p>
 
 <p align="center">
-  <em>Dashboard with the impact stat and quick links &nbsp;·&nbsp; Dispatch Tracker — real PostGIS match + dual OTPs</em>
+  <em>Dashboard with the impact stat and quick links &nbsp;·&nbsp; Dispatch Tracker - real PostGIS match + dual OTPs</em>
 </p>
 
 <p align="center">
@@ -212,7 +212,7 @@ non-English keywords), not silently special-cased. Scenarios and the runner are 
 </p>
 
 <p align="center">
-  <em>Technician Console — location, dispatch lifecycle, live annotation &nbsp;·&nbsp; Auth</em>
+  <em>Technician Console - location, dispatch lifecycle, live annotation &nbsp;·&nbsp; Auth</em>
 </p>
 
 ---
@@ -285,7 +285,7 @@ docker compose exec backend pytest tests/ -v
 ```
 
 34 integration tests, run against the real `db`/`redis` containers via
-`fastapi.testclient.TestClient` — no mocks, same philosophy as everything else in this
+`fastapi.testclient.TestClient` - no mocks, same philosophy as everything else in this
 project. Covers auth/RBAC, sessions, technician profiles, the full dual-OTP dispatch
 lifecycle (KNN match, concurrent-lock 409, wrong-OTP 400, cross-technician 403), HTTP 206
 streaming, and all three WebSocket endpoints (audio triage end-to-end including DB
@@ -301,7 +301,7 @@ docker cp eval/scenarios.json <backend-container>:/app/scenarios.json
 docker exec <backend-container> python run_eval.py
 ```
 
-Runs against the real system, not mocks — see [eval/README.md](eval/README.md) for how the
+Runs against the real system, not mocks - see [eval/README.md](eval/README.md) for how the
 dispatch eval isolates its own fixtures so it's safe to rerun against a shared/demo database.
 
 ---
@@ -332,7 +332,7 @@ frontend/
     pages/               Dashboard, Login, Register, CustomerRoom, TechnicianConsole,
                          DispatchTracker
     lib/api.js           Single fetch wrapper for the whole backend surface
-eval/                   scenarios.json + run_eval.py — measured accuracy/precision numbers
+eval/                   scenarios.json + run_eval.py - measured accuracy/precision numbers
 docs/                   Technical spec and screenshots
 ```
 
