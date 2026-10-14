@@ -1,7 +1,6 @@
 # DiagnoZ Evaluation Harness
 
-Measures the system against real, labeled scenarios instead of eyeballing it — see
-`../docs/PHASE_EVAL_NOTES.md` for the full writeup and measured results.
+Measures the system against real, labeled scenarios instead of eyeballing it.
 
 ## What it measures
 

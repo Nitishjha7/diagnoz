@@ -297,8 +297,7 @@ diagnoz/
 ├── docker-compose.yml · .gitignore · README.md
 ```
 
-> Note: the current repo scaffold is a subset of the above; files are added phase by phase
-> per [ROADMAP.md](ROADMAP.md).
+> Note: this is the target layout; the repo contains the parts described in the README.
 
 ---
 

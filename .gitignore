@@ -12,3 +12,6 @@ celerybeat-schedule
 Thumbs.db
 .idea/
 .vscode/
+
+# Private notes (interview prep, build logs) - not for GitHub
+docs/private/

@@ -1,7 +1,6 @@
 # DiagnoZ Frontend
 
-React 19 + Vite demo UI for DiagnoZ. See [../docs/PHASE_FRONTEND_NOTES.md](../docs/PHASE_FRONTEND_NOTES.md)
-for what's implemented and how it was verified.
+React 19 + Vite demo UI for DiagnoZ.
 
 ## Local dev
 

@@ -29,8 +29,7 @@ visits that are actually a tripped breaker, a loose connector, or a wrong settin
   <a href="#how-it-works">How it works</a> ·
   <a href="#measured-results">Results</a> ·
   <a href="#quick-start">Quick start</a> ·
-  <a href="docs/">Engineering notes</a> ·
-  <a href="docs/DEMO_SCRIPT.md">Demo script</a>
+  <a href="docs/TECHNICAL_SPEC.md">Technical spec</a>
 </p>
 
 ---
@@ -163,7 +162,7 @@ sequenceDiagram
 Two independent guards, not one: the Redis lock only covers the *assignment* race; the
 persistent `is_available` flag is what actually keeps a busy technician out of future KNN
 matches. Verified end-to-end, including the concurrent-request 409 and the wrong-OTP 400 —
-see [docs/PHASE_4_NOTES.md](docs/PHASE_4_NOTES.md).
+see the dispatch flow in [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md).
 
 ---
 
@@ -192,9 +191,7 @@ queries, the real triage function) — no mocks.
 
 The 2 remaining urgency misses are left as documented limitations of the offline keyword
 fallback (no negation handling — *"nothing urgent **though**"* still matches `urgent`; no
-non-English keywords), not silently special-cased. Full breakdown:
-[docs/PHASE_EVAL_NOTES.md](docs/PHASE_EVAL_NOTES.md) ·
-[docs/INTERVIEW_NOTES.md](docs/INTERVIEW_NOTES.md) (§3a).
+non-English keywords), not silently special-cased. Scenarios and the runner are in [eval/](eval/).
 
 ---
 
@@ -243,7 +240,7 @@ Interactive Swagger docs at `/docs` once the backend is running.
 Only Docker Desktop is required.
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Nitishjha7/diagnoz.git
 cd diagnoz
 cp .env.example .env
 docker compose up --build
@@ -293,7 +290,7 @@ project. Covers auth/RBAC, sessions, technician profiles, the full dual-OTP disp
 lifecycle (KNN match, concurrent-lock 409, wrong-OTP 400, cross-technician 403), HTTP 206
 streaming, and all three WebSocket endpoints (audio triage end-to-end including DB
 persistence, canvas sync relay, WebRTC signaling relay). Caught and fixed a real bug along
-the way — see [docs/PHASE_TESTS_NOTES.md](docs/PHASE_TESTS_NOTES.md).
+the way.
 
 ## Evaluation
 
@@ -336,43 +333,11 @@ frontend/
                          DispatchTracker
     lib/api.js           Single fetch wrapper for the whole backend surface
 eval/                   scenarios.json + run_eval.py — measured accuracy/precision numbers
-docs/                   Setup guide, technical spec, roadmap, per-phase build notes,
-                         interview prep, demo script, screenshots
+docs/                   Technical spec and screenshots
 ```
 
 ---
 
-## Engineering Notes
+## Technical Spec
 
-Every phase is documented with what was built, how it was verified against the real running
-system, and the real bugs found along the way — including the ones that turned out to matter.
-
-| | |
-|---|---|
-| [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md) | Full architecture, DB schema, WebSocket contracts |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Phase order, current status, deployment plan |
-| [docs/CODE_NOTES.md](docs/CODE_NOTES.md) | File-by-file "what and why" for every module |
-| [docs/PHASE_1_NOTES.md](docs/PHASE_1_NOTES.md) … [PHASE_5_NOTES.md](docs/PHASE_5_NOTES.md) | Per-phase build notes |
-| [docs/PHASE_FRONTEND_NOTES.md](docs/PHASE_FRONTEND_NOTES.md) | Frontend build + real-browser verification |
-| [docs/PHASE_EVAL_NOTES.md](docs/PHASE_EVAL_NOTES.md) | Evaluation harness methodology and results |
-| [docs/PHASE_TESTS_NOTES.md](docs/PHASE_TESTS_NOTES.md) | Integration test suite — coverage, isolation approach, bugs caught |
-| [docs/INTERVIEW_NOTES.md](docs/INTERVIEW_NOTES.md) | Pitch, ROI numbers, trade-offs, measured results, anticipated Q&A |
-| [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Step-by-step live demo walkthrough — exact clicks, what to say, fallback plan |
-
----
-
-## Not Built
-
-Stated plainly rather than implied:
-
-- **Live deployment** — everything above is verified against `docker compose` on a local
-  machine. A free-tier deploy plan (Neon + Upstash + Render + Vercel) is written up in
-  [docs/ROADMAP.md](docs/ROADMAP.md), but nothing is hosted publicly yet.
-- **Real WebRTC media, browser-to-browser** — the signaling broker (`/ws/video/signal`) is
-  implemented and verified (two clients correctly relay an SDP offer), but an actual
-  peer-to-peer video call between two real devices, including a TURN server for strict NAT,
-  has not been run.
-- **Real STT/LLM/TTS providers** — every voice-pipeline stage has a working, verified
-  offline fallback so the full flow runs with zero API keys. Wiring in a real Whisper/GPT/
-  TTS provider behind the existing interface is a config change, not an architecture change,
-  but it hasn't been done.
+[docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md) covers the full architecture, DB schema and WebSocket contracts.
